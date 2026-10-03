@@ -26,15 +26,6 @@ export async function setUserStatus(actor, id, isActive) {
   return applyUpdate(id, { isActive });
 }
 
-export async function getStats() {
-  const [users, activeUsers, admins] = await Promise.all([
-    User.countDocuments(),
-    User.countDocuments({ isActive: true }),
-    User.countDocuments({ role: "admin" }),
-  ]);
-  return { users, activeUsers, admins };
-}
-
 function assertNotSelf(actor, id, field) {
   if (actor.id === id) {
     throw new AppError(400, "SELF_MODIFICATION_FORBIDDEN", `You cannot change your own ${field}`);

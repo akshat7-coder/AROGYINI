@@ -13,3 +13,15 @@ export const authLimiter = rateLimit({
   handler: (req, res, next) =>
     next(new AppError(429, "RATE_LIMITED", "Too many attempts. Please try again in a few minutes.")),
 });
+
+// Keyed per user, not per IP: shared networks must not block someone else's SOS.
+export const sosLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => isTest,
+  keyGenerator: (req) => req.user.id,
+  handler: (req, res, next) =>
+    next(new AppError(429, "RATE_LIMITED", "Too many SOS triggers. Please call 112 directly.")),
+});

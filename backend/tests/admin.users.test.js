@@ -142,7 +142,7 @@ describe("PATCH /api/admin/users/:id/status", () => {
 });
 
 describe("GET /api/admin/stats", () => {
-  it("counts users, active users and admins", async () => {
+  it("counts users, active users, admins and active SOS events", async () => {
     const admin = await createAdmin();
     await createUser();
     await createUser({ isActive: false });
@@ -150,6 +150,6 @@ describe("GET /api/admin/stats", () => {
     const res = await request(app).get("/api/admin/stats").set(authHeader(admin));
 
     expect(res.status).toBe(200);
-    expect(res.body.data).toEqual({ users: 3, activeUsers: 2, admins: 1 });
+    expect(res.body.data).toEqual({ users: 3, activeUsers: 2, admins: 1, activeSos: 0 });
   });
 });

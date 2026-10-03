@@ -1,4 +1,5 @@
 import * as adminUserService from "../services/adminUserService.js";
+import * as statsService from "../services/statsService.js";
 import { ok, paginated } from "../utils/apiResponse.js";
 import { parsePagination } from "../utils/pagination.js";
 
@@ -19,5 +20,5 @@ export async function setUserStatus(req, res) {
 }
 
 export async function getStats(req, res) {
-  return ok(res, await adminUserService.getStats());
+  return ok(res, await statsService.getStats());
 }

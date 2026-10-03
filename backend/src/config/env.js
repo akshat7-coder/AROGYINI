@@ -20,7 +20,10 @@ const schema = z.object({
   LLM_API_KEY: z.string().default(""),
   LLM_MODEL: z.string().default("llama-3.1-8b-instant"),
   BOT_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
-});
+}).refine(
+  (c) => c.SMS_PROVIDER !== "twilio" || Boolean(c.TWILIO_ACCOUNT_SID && c.TWILIO_AUTH_TOKEN && c.TWILIO_PHONE_NUMBER),
+  { error: "SMS_PROVIDER=twilio requires TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_PHONE_NUMBER", path: ["SMS_PROVIDER"] }
+);
 
 // Blank values in .env must fall through to the defaults above, not fail validation.
 const present = Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== ""));
