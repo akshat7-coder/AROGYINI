@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { toJSON } from "./toJSON.js";
 
 export const FLOW_LEVELS = ["spotting", "light", "medium", "heavy"];
 
@@ -14,14 +15,7 @@ const cycleLogSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    toJSON: {
-      transform(doc, ret) {
-        ret.id = ret._id.toString();
-        delete ret._id;
-        delete ret.__v;
-        return ret;
-      },
-    },
+    toJSON,
   }
 );
 

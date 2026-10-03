@@ -3,9 +3,10 @@ import Job from "../models/Job.js";
 import Application from "../models/Application.js";
 import Scholarship from "../models/Scholarship.js";
 import { countActiveSos } from "./sosService.js";
+import { countOpenIssues } from "./chat/adminChatService.js";
 
 export async function getStats() {
-  const [users, activeUsers, admins, activeSos, jobs, activeJobs, applications, scholarships] = await Promise.all([
+  const [users, activeUsers, admins, activeSos, jobs, activeJobs, applications, scholarships, openIssues] = await Promise.all([
     User.countDocuments(),
     User.countDocuments({ isActive: true }),
     User.countDocuments({ role: "admin" }),
@@ -14,6 +15,7 @@ export async function getStats() {
     Job.countDocuments({ isActive: true }),
     Application.countDocuments(),
     Scholarship.countDocuments(),
+    countOpenIssues(),
   ]);
-  return { users, activeUsers, admins, activeSos, jobs, activeJobs, applications, scholarships };
+  return { users, activeUsers, admins, activeSos, jobs, activeJobs, applications, scholarships, openIssues };
 }

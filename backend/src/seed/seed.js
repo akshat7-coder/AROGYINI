@@ -4,10 +4,12 @@ import User from "../models/User.js";
 import LegalRight from "../models/LegalRight.js";
 import Job from "../models/Job.js";
 import Scholarship from "../models/Scholarship.js";
+import BotConfig from "../models/BotConfig.js";
 import { hashPassword } from "../services/authService.js";
 import { legalRights } from "./data/legalRights.js";
 import { jobs } from "./data/jobs.js";
 import { scholarships } from "./data/scholarships.js";
+import { botDefaults } from "../services/chat/chatService.js";
 
 async function seedAdmin() {
   return User.findOneAndUpdate(
@@ -50,6 +52,13 @@ async function run() {
   console.log(
     `Scholarships: ${scholarshipResult.inserted} inserted, ${scholarshipResult.updated} updated, ${scholarships.length} total`
   );
+
+  // $setOnInsert only: an admin who edits a bot URL or disables a bot keeps that change.
+  const bots = botDefaults();
+  const botResult = await BotConfig.bulkWrite(
+    bots.map((bot) => ({ updateOne: { filter: { key: bot.key }, update: { $setOnInsert: bot }, upsert: true } }))
+  );
+  console.log(`Bot configs: ${botResult.upsertedCount} inserted, ${bots.length - botResult.upsertedCount} left as configured`);
 
   await disconnectDB();
 }

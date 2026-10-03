@@ -6,6 +6,12 @@ import { idParamSchema, listUsersQuerySchema, userRoleSchema, userStatusSchema }
 import { adminSosQuerySchema } from "../validators/sos.js";
 import { createLegalRightSchema, updateLegalRightSchema } from "../validators/legal.js";
 import {
+  issuesQuerySchema,
+  updateIssueSchema,
+  botKeyParamSchema,
+  updateBotSchema,
+} from "../validators/chat.js";
+import {
   adminJobsQuerySchema,
   createJobSchema,
   updateJobSchema,
@@ -17,6 +23,14 @@ import {
 import { listUsers, setUserRole, setUserStatus, getStats } from "../controllers/adminUserController.js";
 import { listAllSosEvents, resolveSosEvent } from "../controllers/adminSosController.js";
 import { createRight, updateRight, deleteRight } from "../controllers/legalController.js";
+import {
+  listIssues,
+  updateIssue,
+  retryIssue,
+  listBots as listAdminBots,
+  updateBot,
+  testBot,
+} from "../controllers/adminChatController.js";
 import {
   listJobs as listAdminJobs,
   createJob,
@@ -62,6 +76,13 @@ router.patch(
   validate({ params: idParamSchema, body: applicationStatusSchema }),
   setApplicationStatus
 );
+
+router.get("/chat/issues", validate({ query: issuesQuerySchema }), listIssues);
+router.patch("/chat/issues/:id", validate({ params: idParamSchema, body: updateIssueSchema }), updateIssue);
+router.post("/chat/issues/:id/retry", validate({ params: idParamSchema }), retryIssue);
+router.get("/chat/bots", listAdminBots);
+router.patch("/chat/bots/:key", validate({ params: botKeyParamSchema, body: updateBotSchema }), updateBot);
+router.post("/chat/bots/:key/test", validate({ params: botKeyParamSchema }), testBot);
 
 router.get("/stats", getStats);
 

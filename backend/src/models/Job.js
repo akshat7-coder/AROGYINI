@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { toJSON } from "./toJSON.js";
 
 export const JOB_TYPES = ["full-time", "part-time", "remote", "returnship", "internship"];
 
@@ -21,14 +22,7 @@ const jobSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    toJSON: {
-      transform(doc, ret) {
-        ret.id = ret._id.toString();
-        delete ret._id;
-        delete ret.__v;
-        return ret;
-      },
-    },
+    toJSON,
   }
 );
 

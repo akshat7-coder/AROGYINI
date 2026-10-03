@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { toJSON } from "./toJSON.js";
 
 export const MAX_CONTACTS_PER_USER = 5;
 
@@ -12,14 +13,7 @@ const emergencyContactSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    toJSON: {
-      transform(doc, ret) {
-        ret.id = ret._id.toString();
-        delete ret._id;
-        delete ret.__v;
-        return ret;
-      },
-    },
+    toJSON,
   }
 );
 

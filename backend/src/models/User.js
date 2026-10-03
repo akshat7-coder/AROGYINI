@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { toJSON } from "./toJSON.js";
 
 export const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 export const ROLES = ["user", "admin"];
@@ -18,15 +19,7 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    toJSON: {
-      transform(doc, ret) {
-        ret.id = ret._id.toString();
-        delete ret._id;
-        delete ret.__v;
-        delete ret.passwordHash;
-        return ret;
-      },
-    },
+    toJSON,
   }
 );
 

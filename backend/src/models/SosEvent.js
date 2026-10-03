@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { toJSON } from "./toJSON.js";
 
 export const SOS_STATUSES = ["active", "resolved", "cancelled"];
 
@@ -30,14 +31,7 @@ const sosEventSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    toJSON: {
-      transform(doc, ret) {
-        ret.id = ret._id.toString();
-        delete ret._id;
-        delete ret.__v;
-        return ret;
-      },
-    },
+    toJSON,
   }
 );
 

@@ -25,3 +25,14 @@ export const sosLimiter = rateLimit({
   handler: (req, res, next) =>
     next(new AppError(429, "RATE_LIMITED", "Too many SOS triggers. Please call 112 directly.")),
 });
+
+export const chatLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => isTest,
+  keyGenerator: (req) => req.user.id,
+  handler: (req, res, next) =>
+    next(new AppError(429, "RATE_LIMITED", "You are sending messages too quickly. Please wait a moment.")),
+});
