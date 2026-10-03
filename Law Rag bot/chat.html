@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Women Law Chatbot</title>
+</head>
+<body>
+
+<h2>Women Law Chatbot</h2>
+<input id="q" placeholder="Ask a question..." style="width:300px;" />
+<button onclick="ask()">Ask</button>
+
+<p id="answer"></p>
+
+<script>
+async function ask() {
+    let question = document.getElementById("q").value;
+    let res = await fetch("https://your-rag-app.onrender.com/ask", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({question})
+    });
+    let data = await res.json();
+    document.getElementById("answer").innerText = data.answer;
+}
+</script>
+
+</body>
+</html>

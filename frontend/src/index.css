@@ -1,1 +1,94 @@
 @import "tailwindcss";
+
+@theme {
+  --font-display: "Playfair Display", ui-serif, Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  /* Pillar colours, kept as named tokens so a pillar can be restyled in one place. */
+  --color-brand-50: oklch(0.969 0.015 12.422);
+  --color-brand-100: oklch(0.941 0.03 12.58);
+  --color-brand-500: oklch(0.645 0.246 16.439);
+  --color-brand-600: oklch(0.586 0.253 17.585);
+  --color-brand-700: oklch(0.514 0.222 16.935);
+
+  --color-health: oklch(0.645 0.246 16.439);
+  --color-legal: oklch(0.511 0.262 276.966);
+  --color-career: oklch(0.6 0.118 184.704);
+  --color-safety: oklch(0.577 0.245 27.325);
+  --color-accent: oklch(0.769 0.188 70.08);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-slate-50 font-sans text-slate-800 antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display tracking-tight;
+  }
+
+  /* Keyboard users get a visible ring; mouse users do not. */
+  :focus-visible {
+    @apply outline-brand-600 outline-2 outline-offset-2;
+  }
+
+  ::selection {
+    @apply bg-brand-100 text-brand-700;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply rounded-3xl border border-white/80 bg-white/60 shadow-sm backdrop-blur-xl;
+  }
+
+  .glass-strong {
+    @apply rounded-3xl border border-white/90 bg-white/80 shadow-md backdrop-blur-2xl;
+  }
+
+  /* The page background: soft gradient plus blurred colour blobs. */
+  .app-bg {
+    @apply relative min-h-dvh bg-gradient-to-br from-rose-50 via-white to-teal-50;
+  }
+
+  .app-blob {
+    @apply pointer-events-none absolute rounded-full blur-3xl;
+  }
+
+  .hover-lift {
+    @apply transition-transform duration-200 will-change-transform hover:-translate-y-0.5;
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline-brand-600 focus-visible:outline-2 focus-visible:outline-offset-2;
+  }
+}
+
+@layer utilities {
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Respect the OS setting: no transforms, no transitions, no animation. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .hover-lift:hover {
+    transform: none;
+  }
+}

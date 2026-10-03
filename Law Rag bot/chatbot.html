@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Women Law Chatbot</title>
+<style>
+body {
+    font-family: Arial;
+    background: #f7f7f7;
+}
+#chatbox {
+    width: 400px;
+    height: 550px;
+    background: white;
+    margin: 40px auto;
+    border-radius: 10px;
+    padding: 20px;
+    overflow-y: scroll;
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+}
+.message {
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 8px;
+    max-width: 90%;
+}
+.user {
+    background: #d0f0ff;
+    text-align: right;
+}
+.bot {
+    background: #e8e8e8;
+}
+#input-area {
+    width: 400px;
+    margin: auto;
+    display: flex;
+}
+#input-area input {
+    width: 80%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #999;
+}
+#input-area button {
+    width: 20%;
+    background: #5a5af6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    margin-left: 10px;
+}
+</style>
+</head>
+<body>
+
+<div id="chatbox"></div>
+
+<div id="input-area">
+  <input id="question" placeholder="Ask your question..." />
+  <button onclick="askBot()">Ask</button>
+</div>
+
+<script>
+async function askBot() {
+    const question = document.getElementById("question").value;
+    if (!question) return;
+
+    // Display user message
+    document.getElementById("chatbox").innerHTML += 
+        `<div class='message user'>${question}</div>`;
+    document.getElementById("question").value = "";
+
+    // Call your Render API
+    let response = await fetch("https://women-law-rag-bot-2.onrender.com/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question })
+    });
+
+    let data = await response.json();
+
+    // Display bot reply
+    document.getElementById("chatbox").innerHTML += 
+        `<div class='message bot'>${data.answer}</div>`;
+
+    // Auto-scroll
+    document.getElementById("chatbox").scrollTop =
+        document.getElementById("chatbox").scrollHeight;
+}
+</script>
+
+</body>
+</html>
