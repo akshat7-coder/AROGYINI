@@ -13,10 +13,12 @@ Work **one phase at a time** (see PROMPTS.md). Never start the next phase unless
 ## Stack (always install with `@latest`, check docs for breaking changes)
 
 **Backend** (`backend/`): Node.js 22+ (ESM, `"type": "module"`), Express 5, MongoDB + Mongoose,
-jsonwebtoken, bcrypt, zod (validation), helmet, cors, morgan, express-rate-limit, dotenv, twilio.
+jsonwebtoken, bcrypt, zod (validation), helmet, cors, morgan, express-rate-limit, dotenv, twilio,
+axios (all outbound HTTP: RAG bots, LLM).
 **Tests**: Jest + Supertest + mongodb-memory-server.
 **Frontend** (`frontend/`): React 19 + Vite, Tailwind CSS v4 (`@tailwindcss/vite`, configured in CSS
-with `@theme`, no tailwind.config.js), React Router (package `react-router`), lucide-react.
+with `@theme`, no tailwind.config.js), React Router (package `react-router`), lucide-react,
+axios (all API calls).
 
 ## Commands
 
@@ -118,7 +120,7 @@ Flow: `POST /api/chat/conversations/:id/messages { content, bot? }`
    using keyword lists (English + common Hindi words). Explicit `bot` (`medical|legal|general`)
    overrides routing; `auto` (default) maps health→medical, legal→legal, everything else→general.
 3. Load `BotConfig` for that key (DB overrides env). Disabled bot → fall back to `general`.
-4. Call provider with a timeout (`AbortSignal.timeout(timeoutMs)`):
+4. Call provider with axios, passing `{ timeout: timeoutMs }` (axios enforces it in the adapter):
    - **medical / legal** (external RAG bots): `POST {url}/ask` body `{ "question": "..." }` → `{ "answer": "..." }`
    - **general**: OpenAI-compatible `POST {LLM_API_URL}/chat/completions` with system prompt
      + last 10 messages; if `LLM_API_KEY` is empty, return a helpful built-in fallback answer
@@ -161,7 +163,13 @@ BOT_TIMEOUT_MS=30000
 
 - `NODE_ENV=test`, `SMS_PROVIDER=memory`, rate limiters disabled in test.
 - Tests import `app` from `src/app.js` (never start the real server or real DB).
-- Mock LLM/bot calls by replacing `globalThis.fetch` with `jest.fn()` in the test (no ESM module mocking).
+- Under Jest ESM `jest` is **not** a global: `import { jest } from "@jest/globals"` in any test that mocks.
+- Mock LLM/bot calls by swapping the axios adapter, not the module (no ESM module mocking):
+  save `axios.defaults.adapter`, set it to a `jest.fn(async (config) => ({ data, status, statusText,
+  headers, config }))`, restore it in `afterEach`. `config.data` is the serialised request body.
+  A stub adapter bypasses axios's `timeout`, so simulate a timeout by throwing
+  `new axios.AxiosError(msg, "ECONNABORTED", config)`, and an upstream failure by passing a
+  5th `response` argument with `{ status: 502, ... }` — do not hang the adapter.
 - Each module test covers: happy path, validation error, 401 without token, 403 for wrong role,
   ownership (user A cannot read/modify user B's data).
 - Run `npm test` after every phase; all tests must pass before reporting done.
@@ -186,7 +194,8 @@ BOT_TIMEOUT_MS=30000
 ```
 frontend/src/
   main.jsx  App.jsx  index.css
-  api/          # client.js (fetch wrapper adds token, unwraps {success,data}, throws ApiError) + one file per module
+  api/          # client.js (axios instance: baseURL VITE_API_URL, request interceptor adds the token,
+                #            response interceptor unwraps {success,data} and throws ApiError) + one file per module
   context/      # AuthContext (user, token, login, signup, logout), ToastContext
   hooks/        # useSiren, useGeolocation, useAsync
   components/   # ui/ (Button, Card, Input, Select, Modal, Badge, Spinner, EmptyState), layout/, sos/, chat/
