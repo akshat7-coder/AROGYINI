@@ -1,0 +1,205 @@
+// DEMO DATA. These are illustrative sample listings written to exercise the app, not live
+// vacancies. The two returnships are modelled on real, publicly documented return-to-work
+// programmes, but the roles themselves are invented. Replace these with real postings through
+// POST /api/admin/jobs before putting the app in front of users.
+const daysAgo = (n) => new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+
+export const jobs = [
+  {
+    title: "Software Engineer II (Return to Work)",
+    company: "Tata Group (Second Career Internship Programme)",
+    location: "Mumbai, Maharashtra (hybrid)",
+    type: "returnship",
+    category: "engineering",
+    salaryRange: "Approx Rs 12,00,000 - 18,00,000 per year",
+    experienceLevel: "3+ years, after a career break of 1 year or more",
+    description:
+      "A structured six-month returnship for women engineers coming back after a career break, with a mentor, a ramp-up plan, and a view to a full-time role at the end. You will work on backend services for internal platforms alongside a regular delivery team.",
+    requirements: [
+      "A career break of at least 12 months",
+      "3 or more years of prior experience building web or backend software",
+      "Working knowledge of one of Java, Python, or JavaScript",
+      "Comfort with reading an existing codebase and asking questions",
+    ],
+    benefits: [
+      "Dedicated mentor and a phased ramp-up over the first eight weeks",
+      "Flexible hours and hybrid working",
+      "Refresher training on current tooling",
+      "Conversion to a full-time role on successful completion",
+    ],
+    careerBreakFriendly: true,
+    applyUrl: "https://www.tata.com/careers",
+    postedAt: daysAgo(4),
+  },
+  {
+    title: "Financial Analyst (Rekindle Returnship)",
+    company: "Amazon India (Rekindle)",
+    location: "Bengaluru, Karnataka",
+    type: "returnship",
+    category: "finance",
+    salaryRange: "Approx Rs 10,00,000 - 15,00,000 per year",
+    experienceLevel: "2+ years, after a career break",
+    description:
+      "Rekindle is a return-to-work programme for professionals who have taken a career break of a year or longer. This role supports financial planning and analysis for a retail business line, with a 16-week on-ramp.",
+    requirements: [
+      "A career break of 12 months or more",
+      "2 or more years in financial analysis, audit, or accounting",
+      "Advanced spreadsheet skills; SQL is a plus",
+      "A degree in commerce, finance, economics, or a CA or CFA qualification",
+    ],
+    benefits: [
+      "Paid training and a buddy for the first month",
+      "Flexible start date",
+      "Creche support and parental benefits",
+      "Possibility of a permanent offer",
+    ],
+    careerBreakFriendly: true,
+    applyUrl: "https://www.amazon.jobs/en/teams/rekindle",
+    postedAt: daysAgo(9),
+  },
+  {
+    title: "Frontend Developer (React)",
+    company: "Zolve Technologies",
+    location: "Remote (India)",
+    type: "remote",
+    category: "engineering",
+    salaryRange: "Approx Rs 14,00,000 - 22,00,000 per year",
+    experienceLevel: "3-6 years",
+    description:
+      "Build and maintain customer-facing React applications for a fintech product used across India. Fully remote team with overlapping core hours and a strong written-documentation culture.",
+    requirements: [
+      "3 or more years with React and modern JavaScript",
+      "Experience with accessible, responsive UI",
+      "Familiarity with testing tools such as Jest or Playwright",
+    ],
+    benefits: [
+      "Fully remote with a home office allowance",
+      "Health cover for you and your dependants",
+      "26 weeks of paid maternity leave",
+      "Annual learning budget",
+    ],
+    careerBreakFriendly: true,
+    applyUrl: "https://example.com/careers/frontend-developer",
+    postedAt: daysAgo(2),
+  },
+  {
+    title: "Data Analyst",
+    company: "Meridian Health Analytics",
+    location: "Pune, Maharashtra",
+    type: "full-time",
+    category: "data",
+    salaryRange: "Approx Rs 8,00,000 - 12,00,000 per year",
+    experienceLevel: "1-3 years",
+    description:
+      "Work with clinical and operational datasets to build dashboards and reports that help hospital partners improve patient outcomes. You will own reporting for two partner hospitals end to end.",
+    requirements: [
+      "1 or more years working with SQL on real datasets",
+      "Experience with Power BI, Tableau, or Metabase",
+      "Python or R for analysis is an advantage",
+    ],
+    benefits: [
+      "Hybrid, three days in office",
+      "Health insurance including parents",
+      "Certification reimbursement",
+    ],
+    careerBreakFriendly: false,
+    applyUrl: "https://example.com/careers/data-analyst",
+    postedAt: daysAgo(6),
+  },
+  {
+    title: "Content Writer (Health and Wellness)",
+    company: "Sakhi Media",
+    location: "Remote (India)",
+    type: "part-time",
+    category: "content",
+    salaryRange: "Approx Rs 30,000 - 45,000 per month",
+    experienceLevel: "2-5 years",
+    description:
+      "Write clear, researched articles on women's health, nutrition, and mental wellbeing for a readership across India. Roughly 20 hours a week with flexible scheduling.",
+    requirements: [
+      "A portfolio of published health or science writing",
+      "Ability to read and summarise medical sources accurately",
+      "Working knowledge of Hindi or one regional language is a plus",
+    ],
+    benefits: [
+      "Choose your own hours",
+      "Fully remote",
+      "Paid per-article bonus for high-performing pieces",
+    ],
+    careerBreakFriendly: true,
+    applyUrl: "https://example.com/careers/content-writer",
+    postedAt: daysAgo(11),
+  },
+  {
+    title: "HR Business Partner",
+    company: "Kinara Capital",
+    location: "Bengaluru, Karnataka",
+    type: "full-time",
+    category: "human-resources",
+    salaryRange: "Approx Rs 12,00,000 - 18,00,000 per year",
+    experienceLevel: "5-8 years",
+    description:
+      "Partner with business leaders on hiring, performance, and retention for a 300-person lending organisation, with a specific mandate to improve gender representation in field roles.",
+    requirements: [
+      "5 or more years in an HR generalist or HRBP role",
+      "Experience running POSH compliance and Internal Committee processes",
+      "Comfort with HR analytics and headcount planning",
+    ],
+    benefits: [
+      "Flexible working arrangement",
+      "Creche reimbursement",
+      "Annual health check for you and your family",
+    ],
+    careerBreakFriendly: false,
+    applyUrl: "https://example.com/careers/hr-business-partner",
+    postedAt: daysAgo(15),
+  },
+  {
+    title: "UX Design Intern",
+    company: "Arogya Labs",
+    location: "Hyderabad, Telangana (hybrid)",
+    type: "internship",
+    category: "design",
+    salaryRange: "Approx Rs 25,000 per month stipend",
+    experienceLevel: "Student or recent graduate",
+    description:
+      "A six-month paid internship on a healthcare product team. You will run usability sessions, build prototypes in Figma, and ship at least one feature end to end with a design mentor.",
+    requirements: [
+      "A design portfolio, coursework projects are welcome",
+      "Working knowledge of Figma",
+      "Available for six months, at least four days a week",
+    ],
+    benefits: [
+      "Paid stipend and a certificate",
+      "One-to-one mentoring",
+      "Pre-placement offer for strong performers",
+    ],
+    careerBreakFriendly: false,
+    applyUrl: "https://example.com/careers/ux-intern",
+    postedAt: daysAgo(3),
+  },
+  {
+    title: "Operations Manager",
+    company: "Sahaj Logistics",
+    location: "Ahmedabad, Gujarat",
+    type: "full-time",
+    category: "operations",
+    salaryRange: "Approx Rs 9,00,000 - 14,00,000 per year",
+    experienceLevel: "4-7 years",
+    description:
+      "Run daily operations for two warehouses, covering staffing, safety, and delivery performance. The company is actively building a mixed-gender floor team and provides transport for shifts ending after 8 pm.",
+    requirements: [
+      "4 or more years in warehouse, retail, or supply chain operations",
+      "Experience managing a team of 20 or more",
+      "Working knowledge of Gujarati or Hindi",
+    ],
+    benefits: [
+      "Company transport for late shifts",
+      "Health insurance including parents",
+      "Performance bonus paid quarterly",
+    ],
+    careerBreakFriendly: false,
+    applyUrl: "https://example.com/careers/operations-manager",
+    postedAt: daysAgo(20),
+  },
+];

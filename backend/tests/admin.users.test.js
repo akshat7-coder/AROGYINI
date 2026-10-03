@@ -150,6 +150,6 @@ describe("GET /api/admin/stats", () => {
     const res = await request(app).get("/api/admin/stats").set(authHeader(admin));
 
     expect(res.status).toBe(200);
-    expect(res.body.data).toEqual({ users: 3, activeUsers: 2, admins: 1, activeSos: 0 });
+    expect(res.body.data).toMatchObject({ users: 3, activeUsers: 2, admins: 1, activeSos: 0, jobs: 0, applications: 0 });
   });
 });

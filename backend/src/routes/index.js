@@ -6,6 +6,7 @@ import adminRoutes from "./admin.js";
 import contactRoutes from "./contacts.js";
 import cycleRoutes from "./cycles.js";
 import legalRoutes from "./legal.js";
+import careerRoutes from "./career.js";
 import sosRoutes from "./sos.js";
 import safetyRoutes from "./safety.js";
 
@@ -24,6 +25,7 @@ router.use("/auth", authRoutes);
 router.use("/contacts", contactRoutes);
 router.use("/cycles", cycleRoutes);
 router.use("/legal", legalRoutes);
+router.use("/career", careerRoutes);
 router.use("/sos", sosRoutes);
 router.use("/safety", safetyRoutes);
 router.use("/admin", adminRoutes);
