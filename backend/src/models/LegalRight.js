@@ -26,7 +26,8 @@ const legalRightSchema = new mongoose.Schema(
   }
 );
 
-legalRightSchema.index({ title: "text", actName: "text", summary: "text" });
+
+legalRightSchema.index({ isPublished: 1, category: 1, year: 1 });
 
 const LegalRight = mongoose.model("LegalRight", legalRightSchema);
 export default LegalRight;

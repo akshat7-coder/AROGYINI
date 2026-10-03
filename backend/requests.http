@@ -1,0 +1,979 @@
+### AROGYINI API — VS Code REST Client
+#
+# Install: "REST Client" by Huachao Mao (humao.rest-client).
+# Click "Send Request" above any ### block. Run them top to bottom the first time:
+# signup/signin set @token, and several later blocks need @conversationId, @jobId etc.
+#
+# Variables captured from responses use the {{request.response.body.$.…}} syntax, so a block
+# only works after the request it names has been sent in this session.
+
+@host = http://localhost:3000/api
+@contentType = application/json
+
+# Credentials (change these, or match what you seeded)
+@userName = Asha Rao
+@userEmail = asha@example.com
+@userPassword = Secret123
+@adminEmail = admin@arogyini.in
+@adminPassword = Admin@12345
+
+
+# ===========================================================================
+# HEALTH
+# ===========================================================================
+
+### Service health — no auth
+GET {{host}}/health
+
+
+### Unknown route, to see the error envelope
+GET {{host}}/does-not-exist
+
+
+# ===========================================================================
+# AUTH
+# ===========================================================================
+
+### Sign up (always creates role "user"; a role in the body is ignored)
+# @name signup
+POST {{host}}/auth/signup
+Content-Type: {{contentType}}
+
+{
+  "name": "{{userName}}",
+  "email": "{{userEmail}}",
+  "password": "{{userPassword}}",
+  "phone": "98765 43210",
+  "city": "Pune",
+  "bloodGroup": "B+",
+  "role": "admin"
+}
+
+
+### Sign in as the user — captures @token
+# @name signin
+POST {{host}}/auth/signin
+Content-Type: {{contentType}}
+
+{
+  "email": "{{userEmail}}",
+  "password": "{{userPassword}}"
+}
+
+@token = {{signin.response.body.$.data.token}}
+
+
+### Sign in as the admin — captures @adminToken
+# @name adminSignin
+POST {{host}}/auth/signin
+Content-Type: {{contentType}}
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+@adminToken = {{adminSignin.response.body.$.data.token}}
+
+
+### Wrong password — expect 401 with a generic message
+POST {{host}}/auth/signin
+Content-Type: {{contentType}}
+
+{
+  "email": "{{userEmail}}",
+  "password": "WrongPassword1"
+}
+
+
+### Current user
+GET {{host}}/auth/me
+Authorization: Bearer {{token}}
+
+
+### Current user without a token — expect 401
+GET {{host}}/auth/me
+
+
+### Update own profile (name, phone, bloodGroup, city only)
+PATCH {{host}}/auth/me
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "city": "Mumbai",
+  "bloodGroup": "O+",
+  "email": "hacker@example.com",
+  "role": "admin"
+}
+
+
+### Change password (requires the current one).
+### NOTE: running this invalidates @userPassword above — sign in again with the new one.
+PATCH {{host}}/auth/password
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "currentPassword": "{{userPassword}}",
+  "newPassword": "Brandnew1"
+}
+
+
+# ===========================================================================
+# EMERGENCY CONTACTS (max 5 per user)
+# ===========================================================================
+
+### Add a contact — loose phone formats are normalised to E.164
+# @name createContact
+POST {{host}}/contacts
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "Maa",
+  "relation": "mother",
+  "phone": "98765 43210",
+  "priority": 1
+}
+
+@contactId = {{createContact.response.body.$.data.contact.id}}
+
+
+### Add a second contact
+POST {{host}}/contacts
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "Papa",
+  "relation": "father",
+  "phone": "+91 90000 11111",
+  "priority": 2
+}
+
+
+### List own contacts, ordered by priority
+GET {{host}}/contacts
+Authorization: Bearer {{token}}
+
+
+### Update a contact
+PATCH {{host}}/contacts/{{contactId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "relation": "guardian",
+  "priority": 3
+}
+
+
+### Unusable phone number — expect 400
+POST {{host}}/contacts
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "Bad",
+  "phone": "12345"
+}
+
+
+### Delete a contact — expect 204
+DELETE {{host}}/contacts/{{contactId}}
+Authorization: Bearer {{token}}
+
+
+# ===========================================================================
+# CYCLE TRACKER
+# ===========================================================================
+
+### Summary before any logs — hasData false with defaults
+GET {{host}}/cycles/summary
+Authorization: Bearer {{token}}
+
+
+### Log a period (adjust the dates so the newest is recent)
+# @name createCycle
+POST {{host}}/cycles
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "startDate": "2026-08-04",
+  "endDate": "2026-08-08",
+  "flow": "medium",
+  "symptoms": ["cramps", "fatigue"],
+  "mood": "low",
+  "notes": "Heavier than usual"
+}
+
+@cycleId = {{createCycle.response.body.$.data.log.id}}
+
+
+### Second cycle, about 28 days later
+POST {{host}}/cycles
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "startDate": "2026-09-01",
+  "endDate": "2026-09-05",
+  "flow": "heavy"
+}
+
+
+### Third cycle
+POST {{host}}/cycles
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "startDate": "2026-09-29",
+  "endDate": "2026-10-03",
+  "flow": "light"
+}
+
+
+### List cycle logs, newest first
+GET {{host}}/cycles?page=1&limit=10
+Authorization: Bearer {{token}}
+
+
+### Summary with data — predictions, phase, tips
+GET {{host}}/cycles/summary
+Authorization: Bearer {{token}}
+
+
+### Overlapping log — expect 409 CYCLE_OVERLAP
+POST {{host}}/cycles
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "startDate": "2026-09-03"
+}
+
+
+### Future start date — expect 400 FUTURE_START_DATE
+POST {{host}}/cycles
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "startDate": "2099-01-01"
+}
+
+
+### Update a log
+PATCH {{host}}/cycles/{{cycleId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "flow": "heavy",
+  "symptoms": ["backache"]
+}
+
+
+### Delete a log — expect 204
+DELETE {{host}}/cycles/{{cycleId}}
+Authorization: Bearer {{token}}
+
+
+# ===========================================================================
+# SAFETY: SOS
+# ===========================================================================
+
+### Public helplines — no auth
+GET {{host}}/safety/helplines
+
+
+### Trigger SOS. Sends one SMS per contact (watch the dev terminal with
+### SMS_PROVIDER=console). Needs at least one emergency contact, else 400 NO_CONTACTS.
+# @name triggerSos
+POST {{host}}/sos
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "latitude": 18.5204,
+  "longitude": 73.8567,
+  "accuracy": 12,
+  "message": "Near the bus stand"
+}
+
+@sosId = {{triggerSos.response.body.$.data.event.id}}
+
+
+### Trigger again — returns the SAME active event with alreadyActive true (200, not 201)
+POST {{host}}/sos
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "latitude": 18.5204,
+  "longitude": 73.8567
+}
+
+
+### Own SOS history, paginated
+GET {{host}}/sos?page=1&limit=10
+Authorization: Bearer {{token}}
+
+
+### One SOS event
+GET {{host}}/sos/{{sosId}}
+Authorization: Bearer {{token}}
+
+
+### Resolve, and send an "I'm safe" SMS to every contact
+PATCH {{host}}/sos/{{sosId}}/resolve?notify=true
+Authorization: Bearer {{token}}
+
+
+### Cancel an active event (resolve/cancel on a closed one returns 404)
+PATCH {{host}}/sos/{{sosId}}/cancel
+Authorization: Bearer {{token}}
+
+
+# ===========================================================================
+# LEGAL
+# ===========================================================================
+
+### All published rights — public
+GET {{host}}/legal/rights?page=1&limit=20
+
+
+### Filter by category: workplace | domestic | marriage | cyber | criminal | media
+GET {{host}}/legal/rights?category=workplace
+
+
+### Search title, act name and summary
+GET {{host}}/legal/rights?search=POSH
+
+
+### One right by slug — public
+GET {{host}}/legal/rights/posh-act-2013
+
+
+### Unknown slug — expect 404
+GET {{host}}/legal/rights/no-such-act-1999
+
+
+### Draft: POSH complaint to the Internal Committee
+POST {{host}}/legal/drafts
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "type": "posh",
+  "complainantName": "Asha Rao",
+  "designation": "Senior Analyst",
+  "department": "Finance",
+  "employerName": "Meridian Consulting Pvt Ltd",
+  "respondentName": "Vikram Shah",
+  "respondentDesignation": "Team Lead",
+  "incidentDate": "2026-09-12",
+  "incidentPlace": "Fourth floor meeting room, Pune office",
+  "incidentDescription": "He made repeated unwelcome remarks about my appearance and blocked the door when I tried to leave.",
+  "witnesses": ["Priya Nair, Analyst"],
+  "contactPhone": "+919876543210"
+}
+
+
+### Draft: Zero FIR
+POST {{host}}/legal/drafts
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "type": "zero_fir",
+  "complainantName": "Asha Rao",
+  "guardianName": "D/o Mohan Rao",
+  "age": 29,
+  "address": "12 Shivaji Nagar, Pune 411005",
+  "phone": "+919876543210",
+  "policeStation": "Deccan Gymkhana Police Station",
+  "district": "Pune",
+  "incidentDateTime": "14 September 2026 at about 9:30 pm",
+  "incidentPlace": "Near the bus stand at Kothrud, Mumbai",
+  "incidentDescription": "Two men followed me from the bus stand and snatched my bag after threatening me.",
+  "accusedDetails": "Two men, aged about 25, one in a red jacket, on a black motorcycle.",
+  "propertyLost": "One handbag containing a mobile phone and Rs 4,000 in cash."
+}
+
+
+### Draft: PWDVA Section 12 application
+POST {{host}}/legal/drafts
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "type": "pwdva",
+  "aggrievedName": "Asha Rao",
+  "age": 29,
+  "address": "12 Shivaji Nagar, Pune 411005",
+  "respondentName": "Rohit Deshmukh",
+  "relationship": "husband",
+  "marriageDate": "2022-02-14",
+  "sharedHousehold": "Flat 4B, Sunrise Apartments, Pune",
+  "incidentDescription": "He has assaulted me on several occasions and has withheld money for household expenses.",
+  "children": ["Ira Deshmukh, aged 2 years"],
+  "reliefs": ["protection", "residence", "monetary", "custody"],
+  "district": "Pune"
+}
+
+
+### Draft: Dowry Prohibition Act complaint
+POST {{host}}/legal/drafts
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "type": "dowry",
+  "complainantName": "Asha Rao",
+  "age": 29,
+  "address": "12 Shivaji Nagar, Pune 411005",
+  "husbandName": "Rohit Deshmukh",
+  "marriageDate": "2022-02-14",
+  "inLaws": ["Sunita Deshmukh (mother-in-law)", "Anil Deshmukh (father-in-law)"],
+  "demandDescription": "They demanded a car and cash after the wedding and have harassed me since I refused.",
+  "amountDemanded": "Rs 5,00,000",
+  "itemsDemanded": ["A four wheeler", "Gold ornaments"],
+  "policeStation": "Deccan Gymkhana Police Station",
+  "district": "Pune",
+  "streedhanWithheld": "Gold jewellery given by my parents at the wedding."
+}
+
+
+### Unknown draft type — expect 400
+POST {{host}}/legal/drafts
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "type": "divorce",
+  "complainantName": "Asha Rao"
+}
+
+
+# ===========================================================================
+# CAREER
+# ===========================================================================
+
+### Jobs — public, paginated
+# @name jobs
+GET {{host}}/career/jobs?page=1&limit=20
+
+@jobId = {{jobs.response.body.$.data.0.id}}
+
+
+### Filter by type: full-time | part-time | remote | returnship | internship
+GET {{host}}/career/jobs?type=returnship
+
+
+### Career-break-friendly roles only
+GET {{host}}/career/jobs?careerBreakFriendly=true
+
+
+### Search title, company and description
+GET {{host}}/career/jobs?search=engineer
+
+
+### Combined filters
+GET {{host}}/career/jobs?type=returnship&careerBreakFriendly=true&search=engineer&page=1&limit=10
+
+
+### One job — public (404 if inactive)
+GET {{host}}/career/jobs/{{jobId}}
+
+
+### Save a job (toggle: call again to unsave) — returns { saved: true|false }
+POST {{host}}/career/jobs/{{jobId}}/save
+Authorization: Bearer {{token}}
+
+
+### Own saved jobs
+GET {{host}}/career/saved
+Authorization: Bearer {{token}}
+
+
+### Apply to a job (409 ALREADY_APPLIED on a second attempt)
+POST {{host}}/career/jobs/{{jobId}}/apply
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "coverNote": "I have five years of relevant experience and am returning from a career break."
+}
+
+
+### Own applications, with the job populated
+GET {{host}}/career/applications?page=1&limit=20
+Authorization: Bearer {{token}}
+
+
+### Own applications filtered by status
+GET {{host}}/career/applications?status=submitted
+Authorization: Bearer {{token}}
+
+
+### Scholarships — public, upcoming deadlines first
+GET {{host}}/career/scholarships?page=1&limit=20
+
+
+### Include expired ones (they sort after the upcoming)
+GET {{host}}/career/scholarships?includeExpired=true
+
+
+### Filter by domain
+GET {{host}}/career/scholarships?domain=entrepreneurship
+
+
+# ===========================================================================
+# CHAT
+# ===========================================================================
+
+### Enabled bots for the picker
+GET {{host}}/chat/bots
+Authorization: Bearer {{token}}
+
+
+### Start a conversation
+# @name createConversation
+POST {{host}}/chat/conversations
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{}
+
+@conversationId = {{createConversation.response.body.$.data.conversation.id}}
+
+
+### Own conversations, newest activity first
+GET {{host}}/chat/conversations?page=1&limit=20
+Authorization: Bearer {{token}}
+
+
+### Health question — auto-routes to the medical bot (needs the Flask bot on :5000)
+# @name sendHealth
+POST {{host}}/chat/conversations/{{conversationId}}/messages
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "content": "my period is late and I have bad cramps",
+  "bot": "auto"
+}
+
+@messageId = {{sendHealth.response.body.$.data.message.id}}
+
+
+### Legal question — auto-routes to the legal bot (needs the FastAPI bot on :8002)
+POST {{host}}/chat/conversations/{{conversationId}}/messages
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "content": "how do I file an FIR for dowry harassment"
+}
+
+
+### Explicit bot override — a health question forced to the legal bot
+POST {{host}}/chat/conversations/{{conversationId}}/messages
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "content": "my period is late",
+  "bot": "legal"
+}
+
+
+### General question — LLM, or the built-in fallback when LLM_API_KEY is empty
+POST {{host}}/chat/conversations/{{conversationId}}/messages
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "content": "what can this app help me with",
+  "bot": "general"
+}
+
+
+### Emergency — response has emergency true and the 112/181/1091 notice on top
+POST {{host}}/chat/conversations/{{conversationId}}/messages
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "content": "bachao someone is following me"
+}
+
+
+### Empty message — expect 400
+POST {{host}}/chat/conversations/{{conversationId}}/messages
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "content": "   "
+}
+
+
+### Conversation with its messages
+GET {{host}}/chat/conversations/{{conversationId}}
+Authorization: Bearer {{token}}
+
+
+### Report an assistant message (creates a user_report ChatIssue)
+POST {{host}}/chat/messages/{{messageId}}/report
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "reason": "This advice looks wrong and could be harmful."
+}
+
+
+### Delete a conversation, its messages and its issues — expect 204
+DELETE {{host}}/chat/conversations/{{conversationId}}
+Authorization: Bearer {{token}}
+
+
+# ===========================================================================
+# ADMIN — all require role "admin" (403 for a normal user)
+# ===========================================================================
+
+### Dashboard counts
+GET {{host}}/admin/stats
+Authorization: Bearer {{adminToken}}
+
+
+### Admin route with a user token — expect 403
+GET {{host}}/admin/stats
+Authorization: Bearer {{token}}
+
+
+# --- Users ---
+
+### List users, paginated, searchable by name or email
+# @name adminUsers
+GET {{host}}/admin/users?page=1&limit=20&search=asha
+Authorization: Bearer {{adminToken}}
+
+@targetUserId = {{adminUsers.response.body.$.data.0.id}}
+
+
+### Filter by role
+GET {{host}}/admin/users?role=user
+Authorization: Bearer {{adminToken}}
+
+
+### Promote a user to admin
+PATCH {{host}}/admin/users/{{targetUserId}}/role
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "role": "admin"
+}
+
+
+### Deactivate a user (they then get 403 on authenticated routes)
+PATCH {{host}}/admin/users/{{targetUserId}}/status
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "isActive": false
+}
+
+
+### Reactivate
+PATCH {{host}}/admin/users/{{targetUserId}}/status
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "isActive": true
+}
+
+
+# --- SOS oversight ---
+
+### All SOS events, with the user populated
+# @name adminSos
+GET {{host}}/admin/sos?page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+@adminSosId = {{adminSos.response.body.$.data.0.id}}
+
+
+### Filter by status: active | resolved | cancelled
+GET {{host}}/admin/sos?status=active
+Authorization: Bearer {{adminToken}}
+
+
+### Resolve any user's SOS event
+PATCH {{host}}/admin/sos/{{adminSosId}}/resolve
+Authorization: Bearer {{adminToken}}
+
+
+# --- Legal content ---
+
+### Create a legal right
+# @name adminCreateLegal
+POST {{host}}/admin/legal
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "slug": "example-act-2026",
+  "title": "An Example Protection",
+  "actName": "Example Protection Act",
+  "year": 2026,
+  "category": "criminal",
+  "summary": "A summary long enough to be meaningful, describing what this example law protects against.",
+  "keyProtections": ["Section 1: something protective."],
+  "howToFile": ["Write a complaint.", "Submit it at the police station."],
+  "penalties": "Up to one year of imprisonment and a fine.",
+  "helplines": ["112", "181"],
+  "faqs": [{ "q": "Who does this cover?", "a": "Anyone affected." }]
+}
+
+@legalId = {{adminCreateLegal.response.body.$.data.right.id}}
+
+
+### Update it (isPublished false hides it from the public endpoints)
+PATCH {{host}}/admin/legal/{{legalId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "An Updated Example Protection",
+  "isPublished": false
+}
+
+
+### Delete it — expect 204
+DELETE {{host}}/admin/legal/{{legalId}}
+Authorization: Bearer {{adminToken}}
+
+
+# --- Jobs ---
+
+### List jobs including inactive ones
+GET {{host}}/admin/jobs?page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+
+### Only inactive jobs
+GET {{host}}/admin/jobs?isActive=false
+Authorization: Bearer {{adminToken}}
+
+
+### Create a job
+# @name adminCreateJob
+POST {{host}}/admin/jobs
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "Backend Engineer",
+  "company": "Example Works",
+  "location": "Remote (India)",
+  "type": "remote",
+  "category": "engineering",
+  "salaryRange": "Approx Rs 18,00,000 - 25,00,000 per year",
+  "experienceLevel": "3-6 years",
+  "description": "Build and run HTTP services for a small product team, with on-call shared across four people.",
+  "requirements": ["3 years with Node.js or Python", "Comfort with SQL"],
+  "benefits": ["Fully remote", "26 weeks paid maternity leave"],
+  "careerBreakFriendly": true,
+  "applyUrl": "https://example.com/careers/backend"
+}
+
+@adminJobId = {{adminCreateJob.response.body.$.data.job.id}}
+
+
+### Update a job
+PATCH {{host}}/admin/jobs/{{adminJobId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "salaryRange": "Approx Rs 20,00,000 - 28,00,000 per year",
+  "isActive": true
+}
+
+
+### Applications for a job, with the applicant populated
+GET {{host}}/admin/jobs/{{jobId}}/applications?page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+
+### Applications for a job, filtered by status
+GET {{host}}/admin/jobs/{{jobId}}/applications?status=submitted
+Authorization: Bearer {{adminToken}}
+
+
+### Delete a job (also deletes its applications) — expect 204
+DELETE {{host}}/admin/jobs/{{adminJobId}}
+Authorization: Bearer {{adminToken}}
+
+
+# --- Applications ---
+
+### Update an application status: submitted | reviewed | accepted | rejected
+### Paste an id from the job applications listing above.
+PATCH {{host}}/admin/applications/PASTE_APPLICATION_ID
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "status": "reviewed"
+}
+
+
+# --- Scholarships ---
+
+### List all scholarships
+GET {{host}}/admin/scholarships?page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+
+### Create a scholarship (deadline null means a rolling scheme)
+# @name adminCreateScholarship
+POST {{host}}/admin/scholarships
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "Example Women in STEM Grant",
+  "provider": "Example Foundation",
+  "amount": "Approx Rs 1,00,000 per year",
+  "eligibility": ["Women enrolled in an undergraduate STEM programme"],
+  "deadline": "2027-03-31",
+  "link": "https://example.com/grant",
+  "domain": "science"
+}
+
+@scholarshipId = {{adminCreateScholarship.response.body.$.data.scholarship.id}}
+
+
+### Update a scholarship
+PATCH {{host}}/admin/scholarships/{{scholarshipId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "amount": "Approx Rs 1,50,000 per year"
+}
+
+
+### Delete a scholarship — expect 204
+DELETE {{host}}/admin/scholarships/{{scholarshipId}}
+Authorization: Bearer {{adminToken}}
+
+
+# --- Chat issues and bots ---
+
+### All chat issues, with user, message and conversation populated
+# @name adminIssues
+GET {{host}}/admin/chat/issues?page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+@issueId = {{adminIssues.response.body.$.data.0.id}}
+
+
+### Filter by status: open | in_progress | resolved
+GET {{host}}/admin/chat/issues?status=open
+Authorization: Bearer {{adminToken}}
+
+
+### Filter by type: provider_error | timeout | user_report
+GET {{host}}/admin/chat/issues?type=provider_error
+Authorization: Bearer {{adminToken}}
+
+
+### Set an issue in progress with a note
+PATCH {{host}}/admin/chat/issues/{{issueId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "status": "in_progress",
+  "adminNote": "Chasing the bot owner."
+}
+
+
+### Resolve it (stamps resolvedBy and resolvedAt)
+PATCH {{host}}/admin/chat/issues/{{issueId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "status": "resolved",
+  "adminNote": "Bot was restarted."
+}
+
+
+### Retry a failed message: re-calls the provider, replaces the content, resolves the issue.
+### Returns 502 RETRY_FAILED if the provider is still down.
+POST {{host}}/admin/chat/issues/{{issueId}}/retry
+Authorization: Bearer {{adminToken}}
+
+
+### All bot configs, each showing source: env | database
+GET {{host}}/admin/chat/bots
+Authorization: Bearer {{adminToken}}
+
+
+### Change the medical bot URL and timeout
+PATCH {{host}}/admin/chat/bots/medical
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "url": "http://localhost:5000",
+  "timeoutMs": 15000,
+  "enabled": true
+}
+
+
+### Disable the legal bot (routing then falls back to general)
+PATCH {{host}}/admin/chat/bots/legal
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "enabled": false
+}
+
+
+### Re-enable it
+PATCH {{host}}/admin/chat/bots/legal
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "enabled": true
+}
+
+
+### Test ping a bot — sends "ping", returns ok and latencyMs
+POST {{host}}/admin/chat/bots/medical/test
+Authorization: Bearer {{adminToken}}
+
+
+### Test the legal bot
+POST {{host}}/admin/chat/bots/legal/test
+Authorization: Bearer {{adminToken}}
+
+
+### Test the general bot (ok false when LLM_API_KEY is empty)
+POST {{host}}/admin/chat/bots/general/test
+Authorization: Bearer {{adminToken}}

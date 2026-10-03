@@ -35,5 +35,8 @@ const sosEventSchema = new mongoose.Schema(
   }
 );
 
+sosEventSchema.index({ user: 1, createdAt: -1 });
+sosEventSchema.index({ status: 1, createdAt: -1 });
+
 const SosEvent = mongoose.model("SosEvent", sosEventSchema);
 export default SosEvent;

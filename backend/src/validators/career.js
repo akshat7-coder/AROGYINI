@@ -32,6 +32,8 @@ export const scholarshipsQuerySchema = z.object({
   includeExpired: boolish.optional(),
 });
 
+export const adminScholarshipsQuerySchema = z.object(pagination);
+
 export const applySchema = z.object({
   coverNote: z.string().trim().max(1000).optional(),
 });

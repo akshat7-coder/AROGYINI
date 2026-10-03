@@ -26,5 +26,8 @@ const jobSchema = new mongoose.Schema(
   }
 );
 
+jobSchema.index({ isActive: 1, postedAt: -1 });
+jobSchema.index({ isActive: 1, type: 1, careerBreakFriendly: 1 });
+
 const Job = mongoose.model("Job", jobSchema);
 export default Job;

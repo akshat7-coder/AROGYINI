@@ -202,6 +202,90 @@ describe("POST /api/admin/chat/issues/:id/retry", () => {
     expect((await ChatIssue.findById(issue.id)).status).toBe("open");
   });
 
+  it("retries through the LLM when the failed bot was general and a key is set", async () => {
+    const admin = await createAdmin();
+    const user = await createUser();
+    const { body: convo } = await request(app).post("/api/chat/conversations").set(authHeader(user)).send({});
+
+    stubAxios(() => new axios.AxiosError("llm down", "ERR_BAD_RESPONSE"));
+    const originalKey = env.LLM_API_KEY;
+    env.LLM_API_KEY = "test-key";
+    try {
+      const { body } = await request(app)
+        .post(`/api/chat/conversations/${convo.data.conversation.id}/messages`)
+        .set(authHeader(user))
+        .send({ content: "what jobs are available for me" });
+      expect(body.data.message.status).toBe("failed");
+      const issue = await ChatIssue.findOne({ message: body.data.message.id });
+
+      const adapter = stubAxios(() => ({ choices: [{ message: { content: "Retried LLM answer." } }] }));
+      const res = await request(app).post(`/api/admin/chat/issues/${issue.id}/retry`).set(authHeader(admin));
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.message).toMatchObject({ bot: "general", status: "ok" });
+      expect(res.body.data.message.content).toBe("Retried LLM answer.");
+      expect(adapter.mock.calls[0][0].url).toBe(`${env.LLM_API_URL}/chat/completions`);
+    } finally {
+      env.LLM_API_KEY = originalKey;
+    }
+  });
+
+  it("retries a reported fallback answer by regenerating the built-in text", async () => {
+    const admin = await createAdmin();
+    const user = await createUser();
+    const { body: convo } = await request(app).post("/api/chat/conversations").set(authHeader(user)).send({});
+
+    // no LLM key, so a career question answers from the fallback provider with status ok
+    const { body } = await request(app)
+      .post(`/api/chat/conversations/${convo.data.conversation.id}/messages`)
+      .set(authHeader(user))
+      .send({ content: "looking for a returnship after a career break" });
+    expect(body.data.message.bot).toBe("fallback");
+
+    const report = await request(app)
+      .post(`/api/chat/messages/${body.data.message.id}/report`)
+      .set(authHeader(user))
+      .send({ reason: "This was not specific enough." });
+
+    const res = await request(app)
+      .post(`/api/admin/chat/issues/${report.body.data.issue.id}/retry`)
+      .set(authHeader(admin));
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.message).toMatchObject({ bot: "fallback", status: "ok" });
+    expect(res.body.data.message.content).toContain("Career section");
+    expect(res.body.data.issue.status).toBe("resolved");
+  });
+
+  it("refuses to retry when the issue points at a user message", async () => {
+    const admin = await createAdmin();
+    const { user, conversationId } = await withFailedMessage();
+    const userMessage = await Message.findOne({ conversation: conversationId, role: "user" });
+    const issue = await ChatIssue.create({
+      message: userMessage.id,
+      conversation: conversationId,
+      user: user.id,
+      type: "user_report",
+      reason: "pointing at the wrong message",
+    });
+
+    const res = await request(app).post(`/api/admin/chat/issues/${issue.id}/retry`).set(authHeader(admin));
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("NOT_RETRYABLE");
+  });
+
+  it("refuses to retry when the original question is gone", async () => {
+    const admin = await createAdmin();
+    const { conversationId, issue } = await withFailedMessage();
+    await Message.deleteMany({ conversation: conversationId, role: "user" });
+
+    const res = await request(app).post(`/api/admin/chat/issues/${issue.id}/retry`).set(authHeader(admin));
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("NOT_RETRYABLE");
+  });
+
   it("returns 404 for an unknown issue and when the message is gone", async () => {
     const admin = await createAdmin();
     const { issue, message } = await withFailedMessage();

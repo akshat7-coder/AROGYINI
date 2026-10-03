@@ -19,5 +19,7 @@ const emergencyContactSchema = new mongoose.Schema(
 
 emergencyContactSchema.index({ user: 1, phone: 1 }, { unique: true });
 
+emergencyContactSchema.index({ user: 1, priority: 1 });
+
 const EmergencyContact = mongoose.model("EmergencyContact", emergencyContactSchema);
 export default EmergencyContact;

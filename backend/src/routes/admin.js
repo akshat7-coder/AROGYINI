@@ -13,6 +13,7 @@ import {
 } from "../validators/chat.js";
 import {
   adminJobsQuerySchema,
+  adminScholarshipsQuerySchema,
   createJobSchema,
   updateJobSchema,
   createScholarshipSchema,
@@ -66,7 +67,7 @@ router.get(
   listJobApplications
 );
 
-router.get("/scholarships", listAdminScholarships);
+router.get("/scholarships", validate({ query: adminScholarshipsQuerySchema }), listAdminScholarships);
 router.post("/scholarships", validate(createScholarshipSchema), createScholarship);
 router.patch("/scholarships/:id", validate({ params: idParamSchema, body: updateScholarshipSchema }), updateScholarship);
 router.delete("/scholarships/:id", validate({ params: idParamSchema }), deleteScholarship);

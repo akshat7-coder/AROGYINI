@@ -2,13 +2,16 @@ import { env } from "../../config/env.js";
 import * as consoleProvider from "./consoleProvider.js";
 import * as memoryProvider from "./memoryProvider.js";
 
-// twilioProvider builds a real client on import, so only load it when actually selected.
-const provider =
-  env.SMS_PROVIDER === "twilio"
-    ? await import("./twilioProvider.js")
-    : env.SMS_PROVIDER === "memory"
-      ? memoryProvider
-      : consoleProvider;
+const STATIC_PROVIDERS = { memory: memoryProvider, console: consoleProvider };
+
+// Anything unrecognised logs rather than silently dropping the message.
+export const providerFor = (name) => STATIC_PROVIDERS[name] ?? consoleProvider;
+
+// twilioProvider builds a real client on import, so it is only loaded when actually selected.
+// The twilio arm is resolved once at module load and cannot run in a test process, so it is
+// ignored for coverage; providerFor() above carries the testable selection logic.
+/* istanbul ignore next */
+const provider = env.SMS_PROVIDER === "twilio" ? await import("./twilioProvider.js") : providerFor(env.SMS_PROVIDER);
 
 export const providerName = provider.name;
 

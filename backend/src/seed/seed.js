@@ -11,19 +11,9 @@ import { jobs } from "./data/jobs.js";
 import { scholarships } from "./data/scholarships.js";
 import { botDefaults } from "../services/chat/chatService.js";
 
-async function seedAdmin() {
-  return User.findOneAndUpdate(
-    { email: env.ADMIN_EMAIL },
-    {
-      $set: { passwordHash: await hashPassword(env.ADMIN_PASSWORD), role: "admin", isActive: true },
-      $setOnInsert: { name: "AROGYINI Admin" },
-    },
-    { returnDocument: "after", upsert: true }
-  );
-}
-
-// Jobs and scholarships have no natural slug, so title + company (or provider) is the key.
-async function upsertBy(Model, rows, keyFields) {
+// Content rows are refreshed from the data files on every run, keyed by a natural identifier:
+// slug for rights, title + company for jobs, title + provider for scholarships.
+async function upsertContent(Model, rows, keyFields) {
   const result = await Model.bulkWrite(
     rows.map((row) => ({
       updateOne: {
@@ -33,32 +23,68 @@ async function upsertBy(Model, rows, keyFields) {
       },
     }))
   );
-  return { inserted: result.upsertedCount, updated: result.modifiedCount };
+  return { created: result.upsertedCount, updated: result.modifiedCount, total: rows.length };
+}
+
+// Bot configs are created once and never overwritten, so admin edits survive a re-seed.
+async function upsertBotsPreservingEdits(rows) {
+  const result = await BotConfig.bulkWrite(
+    rows.map((row) => ({ updateOne: { filter: { key: row.key }, update: { $setOnInsert: row }, upsert: true } }))
+  );
+  return { created: result.upsertedCount, updated: rows.length - result.upsertedCount, total: rows.length };
+}
+
+async function seedAdmin() {
+  const existed = await User.exists({ email: env.ADMIN_EMAIL });
+  const admin = await User.findOneAndUpdate(
+    { email: env.ADMIN_EMAIL },
+    {
+      $set: { passwordHash: await hashPassword(env.ADMIN_PASSWORD), role: "admin", isActive: true },
+      $setOnInsert: { name: "AROGYINI Admin" },
+    },
+    { returnDocument: "after", upsert: true }
+  );
+  return { admin, created: existed ? 0 : 1, updated: existed ? 1 : 0, total: 1 };
+}
+
+function printSummary(rows) {
+  const col = (value, width) => String(value).padStart(width);
+  console.log("");
+  console.log(`  ${"collection".padEnd(14)}${col("created", 9)}${col("updated", 9)}${col("total", 7)}`);
+  console.log(`  ${"-".repeat(39)}`);
+  for (const [label, result] of rows) {
+    console.log(`  ${label.padEnd(14)}${col(result.created, 9)}${col(result.updated, 9)}${col(result.total, 7)}`);
+  }
+  console.log("");
+}
+
+// Never log the URI as-is: it carries the Atlas username and password.
+function redactUri(uri) {
+  try {
+    const url = new URL(uri);
+    return `${url.protocol}//${url.username ? "***:***@" : ""}${url.host}${url.pathname}`;
+  } catch {
+    return "(unparseable MONGODB_URI)";
+  }
 }
 
 async function run() {
   await connectDB();
+  console.log(`Seeding ${redactUri(env.MONGODB_URI)}`);
 
-  const admin = await seedAdmin();
-  console.log(`Admin ready: ${admin.email} (${admin.role})`);
+  const adminResult = await seedAdmin();
+  const results = [
+    ["admin", adminResult],
+    ["legalRights", await upsertContent(LegalRight, legalRights, ["slug"])],
+    ["jobs", await upsertContent(Job, jobs, ["title", "company"])],
+    ["scholarships", await upsertContent(Scholarship, scholarships, ["title", "provider"])],
+    ["botConfigs", await upsertBotsPreservingEdits(botDefaults())],
+  ];
 
-  const legal = await upsertBy(LegalRight, legalRights, ["slug"]);
-  console.log(`Legal rights: ${legal.inserted} inserted, ${legal.updated} updated, ${legalRights.length} total`);
-
-  const jobResult = await upsertBy(Job, jobs, ["title", "company"]);
-  console.log(`Jobs: ${jobResult.inserted} inserted, ${jobResult.updated} updated, ${jobs.length} total`);
-
-  const scholarshipResult = await upsertBy(Scholarship, scholarships, ["title", "provider"]);
-  console.log(
-    `Scholarships: ${scholarshipResult.inserted} inserted, ${scholarshipResult.updated} updated, ${scholarships.length} total`
-  );
-
-  // $setOnInsert only: an admin who edits a bot URL or disables a bot keeps that change.
-  const bots = botDefaults();
-  const botResult = await BotConfig.bulkWrite(
-    bots.map((bot) => ({ updateOne: { filter: { key: bot.key }, update: { $setOnInsert: bot }, upsert: true } }))
-  );
-  console.log(`Bot configs: ${botResult.upsertedCount} inserted, ${bots.length - botResult.upsertedCount} left as configured`);
+  printSummary(results);
+  console.log(`Admin sign-in: ${adminResult.admin.email} with the ADMIN_PASSWORD from your .env`);
+  console.log("Bot configs are only ever created, so admin changes to a URL or timeout are kept.");
+  console.log("Seed complete. Safe to run again.");
 
   await disconnectDB();
 }

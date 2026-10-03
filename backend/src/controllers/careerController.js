@@ -27,7 +27,12 @@ export async function applyToJob(req, res) {
 
 export async function listApplications(req, res) {
   const { page, limit, skip } = parsePagination(req.query);
-  const { applications, meta } = await careerService.listApplications(req.user.id, { page, limit, skip });
+  const { applications, meta } = await careerService.listApplications(req.user.id, {
+    page,
+    limit,
+    skip,
+    status: req.query.status,
+  });
   return paginated(res, applications, meta);
 }
 

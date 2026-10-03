@@ -51,8 +51,8 @@ export async function applyToJob(userId, jobId, coverNote) {
   return Application.create({ user: userId, job: jobId, coverNote });
 }
 
-export async function listApplications(userId, { page, limit, skip }) {
-  const filter = { user: userId };
+export async function listApplications(userId, { page, limit, skip, status }) {
+  const filter = { user: userId, ...(status ? { status } : {}) };
   const [applications, total] = await Promise.all([
     Application.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate("job"),
     Application.countDocuments(filter),

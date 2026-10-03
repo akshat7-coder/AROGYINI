@@ -22,5 +22,7 @@ const chatIssueSchema = new mongoose.Schema(
   }
 );
 
+chatIssueSchema.index({ status: 1, type: 1, createdAt: -1 });
+
 const ChatIssue = mongoose.model("ChatIssue", chatIssueSchema);
 export default ChatIssue;
