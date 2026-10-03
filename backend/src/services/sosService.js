@@ -2,14 +2,12 @@ import EmergencyContact from "../models/EmergencyContact.js";
 import SosEvent from "../models/SosEvent.js";
 import { sendSms } from "./sms/index.js";
 import { AppError } from "../utils/AppError.js";
+import { formatIstDateTime } from "../utils/dates.js";
 
 const mapsUrlFor = ({ latitude, longitude }) => `https://maps.google.com/?q=${latitude},${longitude}`;
 
-const istTime = (date) =>
-  date.toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" });
-
 export function buildSosMessage({ userName, mapsUrl, at = new Date(), message }) {
-  const base = `EMERGENCY: ${userName} needs help. Live location: ${mapsUrl} Time: ${istTime(at)}. Call 112.`;
+  const base = `EMERGENCY: ${userName} needs help. Live location: ${mapsUrl} Time: ${formatIstDateTime(at)}. Call 112.`;
   return message ? `${base} Note: ${message}` : base;
 }
 

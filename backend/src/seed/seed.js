@@ -1,7 +1,9 @@
 import { env } from "../config/env.js";
 import { connectDB, disconnectDB } from "../config/db.js";
 import User from "../models/User.js";
+import LegalRight from "../models/LegalRight.js";
 import { hashPassword } from "../services/authService.js";
+import { legalRights } from "./data/legalRights.js";
 
 async function seedAdmin() {
   return User.findOneAndUpdate(
@@ -14,10 +16,24 @@ async function seedAdmin() {
   );
 }
 
+async function seedLegalRights() {
+  const result = await LegalRight.bulkWrite(
+    legalRights.map((right) => ({
+      updateOne: { filter: { slug: right.slug }, update: { $set: right }, upsert: true },
+    }))
+  );
+  return { inserted: result.upsertedCount, updated: result.modifiedCount };
+}
+
 async function run() {
   await connectDB();
+
   const admin = await seedAdmin();
   console.log(`Admin ready: ${admin.email} (${admin.role})`);
+
+  const legal = await seedLegalRights();
+  console.log(`Legal rights: ${legal.inserted} inserted, ${legal.updated} updated, ${legalRights.length} total`);
+
   await disconnectDB();
 }
 
