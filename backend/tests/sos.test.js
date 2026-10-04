@@ -29,6 +29,66 @@ describe("sms provider wiring", () => {
   });
 });
 
+// The web client sends Content-Type: application/json on bodyless PATCHes. A zero-length
+// payload must be treated as {}, not rejected as invalid JSON.
+describe("bodyless requests from the web client", () => {
+  it("resolves with an empty JSON object body", async () => {
+    const user = await withContacts(1);
+    const { body } = await request(app).post("/api/sos").set(authHeader(user)).send(location);
+
+    const res = await request(app)
+      .patch(`/api/sos/${body.data.event.id}/resolve?notify=true`)
+      .set(authHeader(user))
+      .send({});
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.event.status).toBe("resolved");
+  });
+
+  it("cancels with no body at all but a JSON content type", async () => {
+    const user = await withContacts(1);
+    const { body } = await request(app).post("/api/sos").set(authHeader(user)).send(location);
+
+    const res = await request(app)
+      .patch(`/api/sos/${body.data.event.id}/cancel`)
+      .set(authHeader(user))
+      .set("Content-Type", "application/json")
+      .set("Content-Length", "0")
+      .send();
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.event.status).toBe("cancelled");
+  });
+
+  it("still rejects a body that really is malformed JSON", async () => {
+    const user = await createUser();
+    const res = await request(app)
+      .patch("/api/cycles/64b7f0000000000000000000")
+      .set(authHeader(user))
+      .set("Content-Type", "application/json")
+      .send("{ not json");
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("INVALID_JSON");
+  });
+});
+
+// Every SOS route must be behind authenticate. A commit once dropped `router.use(authenticate)`
+// from the router, which left all of these open and crashed the per-user rate limiter.
+describe("SOS routes reject unauthenticated callers", () => {
+  const id = "64b7f0000000000000000000";
+
+  it.each([
+    ["post", "/api/sos"],
+    ["get", "/api/sos"],
+    ["get", `/api/sos/${id}`],
+    ["patch", `/api/sos/${id}/resolve`],
+    ["patch", `/api/sos/${id}/cancel`],
+  ])("%s %s returns 401 without a token", async (method, path) => {
+    expect((await request(app)[method](path).send({})).status).toBe(401);
+  });
+});
+
 describe("POST /api/sos", () => {
   it("requires authentication", async () => {
     expect((await request(app).post("/api/sos").send(location)).status).toBe(401);

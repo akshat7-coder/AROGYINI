@@ -4,6 +4,11 @@ import os
 # startup() stops at the key check and never opens Chroma or calls a provider.
 os.environ["OPENAI_API_KEY"] = ""
 os.environ["GROQ_API_KEY"] = ""
+# Pin the provider config too: the repo .env may select groq, which would change what
+# these tests assert about the openai defaults.
+os.environ["LLM_PROVIDER"] = "openai"
+os.environ["EMBEDDINGS"] = "openai"
+os.environ["LLM_MODEL"] = ""
 
 import pytest
 from fastapi.testclient import TestClient

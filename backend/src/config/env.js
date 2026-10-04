@@ -13,7 +13,14 @@ const schema = z.object({
   SMS_PROVIDER: z.enum(["twilio", "console", "memory"]).default("console"),
   TWILIO_ACCOUNT_SID: z.string().default(""),
   TWILIO_AUTH_TOKEN: z.string().default(""),
-  TWILIO_PHONE_NUMBER: z.string().default(""),
+  // Twilio matches the sender against the numbers on the account, so "+1 516 751 4517" is
+  // rejected while "+15167514517" works. Catch the spaces here rather than per message.
+  TWILIO_PHONE_NUMBER: z
+    .string()
+    .default("")
+    .refine((value) => value === "" || /^\+[1-9]\d{6,14}$/.test(value), {
+      error: "TWILIO_PHONE_NUMBER must be E.164 with no spaces, for example +15167514517",
+    }),
   MEDICAL_BOT_URL: z.url().default("http://localhost:5000"),
   LEGAL_BOT_URL: z.url().default("http://localhost:8002"),
   LLM_API_URL: z.url().default("https://api.groq.com/openai/v1"),

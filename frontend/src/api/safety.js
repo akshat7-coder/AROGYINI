@@ -12,6 +12,7 @@ export const listSosEvents = (params) => client.get("/sos", { params });
 export const getSosEvent = (id) => client.get(`/sos/${id}`);
 
 export const resolveSos = (id, { notify = false } = {}) =>
-  client.patch(`/sos/${id}/resolve`, null, { params: notify ? { notify: "true" } : undefined });
+  // `null` here would be serialised as the JSON literal null, which the API rejects.
+  client.patch(`/sos/${id}/resolve`, {}, { params: notify ? { notify: "true" } : undefined });
 
 export const cancelSos = (id) => client.patch(`/sos/${id}/cancel`);

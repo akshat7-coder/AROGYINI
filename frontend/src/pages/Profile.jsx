@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { KeyRound, UserCog } from "lucide-react";
+import { useNavigate } from "react-router";
+import { KeyRound, LogOut, UserCog } from "lucide-react";
 import Button from "../components/ui/Button.jsx";
 import Card, { CardHeader } from "../components/ui/Card.jsx";
 import Input from "../components/ui/Input.jsx";
@@ -217,11 +218,35 @@ function PasswordForm() {
   );
 }
 
+// The phone tab bar has no Profile entry, so this is where a phone user signs out.
+function SignOutCard() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  return (
+    <Card className="lg:col-span-2">
+      <CardHeader title="Session" description={`Signed in as ${user?.email ?? ""}.`} icon={LogOut} />
+      <Button
+        variant="secondary"
+        size="lg"
+        onClick={() => {
+          logout();
+          navigate("/signin", { replace: true });
+        }}
+      >
+        <LogOut className="size-4" aria-hidden="true" />
+        Sign out
+      </Button>
+    </Card>
+  );
+}
+
 export default function Profile() {
   return (
     <div className="grid gap-5 lg:grid-cols-2">
       <ProfileForm />
       <PasswordForm />
+      <SignOutCard />
     </div>
   );
 }

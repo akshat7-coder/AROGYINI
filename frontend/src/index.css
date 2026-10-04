@@ -2,20 +2,28 @@
 
 @theme {
   --font-display: "Playfair Display", ui-serif, Georgia, serif;
+  --font-script: "Dancing Script", "Playfair Display", cursive;
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 
   /* Pillar colours, kept as named tokens so a pillar can be restyled in one place. */
-  --color-brand-50: oklch(0.969 0.015 12.422);
-  --color-brand-100: oklch(0.941 0.03 12.58);
-  --color-brand-500: oklch(0.645 0.246 16.439);
-  --color-brand-600: oklch(0.586 0.253 17.585);
-  --color-brand-700: oklch(0.514 0.222 16.935);
+  --color-brand-50: #fff3f8;
+  --color-brand-100: #ffe3ee;
+  --color-brand-200: #ffc9dd;
+  --color-brand-300: #ffa3c5;
+  --color-brand-400: #f871a4;
+  --color-brand-500: #ea4886;
+  --color-brand-600: #d62e70;
+  --color-brand-700: #b01f59;
 
-  --color-health: oklch(0.586 0.253 17.585);
-  --color-legal: oklch(0.511 0.262 276.966);
-  --color-career: oklch(0.511 0.096 186.391);
-  --color-safety: oklch(0.577 0.245 27.325);
+  /* Deep plum ink from the brand artwork; used for headings and the logo mark. */
+  --color-ink: #4b1d3f;
+  --color-ink-soft: #7a4a68;
+
+  --color-health: #d62e70;
+  --color-legal: #7c5cc4;
+  --color-career: #2f9e8f;
+  --color-safety: #e4663a;
 }
 
 @layer base {
@@ -24,13 +32,13 @@
   }
 
   body {
-    @apply bg-slate-50 font-sans text-slate-800 antialiased;
+    @apply bg-brand-50 font-sans text-slate-700 antialiased;
   }
 
   h1,
   h2,
   h3 {
-    @apply font-display tracking-tight;
+    @apply font-display text-ink tracking-tight;
   }
 
   /* Keyboard users get a visible ring; mouse users do not. */
@@ -45,16 +53,16 @@
 
 @layer components {
   .glass {
-    @apply rounded-3xl border border-white/80 bg-white/60 shadow-sm backdrop-blur-xl;
+    @apply rounded-3xl border border-white/70 bg-white/55 shadow-[0_8px_32px_-12px_rgba(180,60,120,0.18)] backdrop-blur-xl;
   }
 
   .glass-strong {
-    @apply rounded-3xl border border-white/90 bg-white/80 shadow-md backdrop-blur-2xl;
+    @apply rounded-3xl border border-white/80 bg-white/80 shadow-[0_12px_40px_-14px_rgba(180,60,120,0.28)] backdrop-blur-2xl;
   }
 
-  /* The page background: soft gradient plus blurred colour blobs. */
+  /* The page background: warm blush gradient plus blurred colour blobs. */
   .app-bg {
-    @apply relative min-h-dvh bg-gradient-to-br from-rose-50 via-white to-teal-50;
+    @apply relative min-h-dvh bg-gradient-to-br from-[#fff1f6] via-[#fff8f4] to-[#ffeef5];
   }
 
   /* Blobs sit outside the viewport edges, so they are clipped by their own layer.
@@ -80,6 +88,11 @@
   .tnum {
     font-variant-numeric: tabular-nums;
   }
+
+  /* GSAP sets the final state; this keeps the first paint from flashing the end frame. */
+  .reveal {
+    opacity: 0;
+  }
 }
 
 /* Respect the OS setting: no transforms, no transitions, no animation. */
@@ -95,5 +108,9 @@
 
   .hover-lift:hover {
     transform: none;
+  }
+
+  .reveal {
+    opacity: 1;
   }
 }

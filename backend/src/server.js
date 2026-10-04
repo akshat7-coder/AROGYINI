@@ -27,6 +27,33 @@ export async function probeBots() {
   }
 }
 
+// Credentials are read once at startup, so a stale .env silently breaks every SOS until a
+// restart. Check them now rather than during someone's emergency.
+export async function probeSms() {
+  if (env.SMS_PROVIDER !== "twilio") {
+    console.log(`SMS provider: ${env.SMS_PROVIDER} (messages are not really sent)`);
+    return;
+  }
+  try {
+    // The provider's own client, so a passing probe really means a send would authenticate.
+    const { verify } = await import("./services/sms/twilioProvider.js");
+    const { type, from, owned, senderIsOwned } = await verify();
+    if (!senderIsOwned) {
+      console.warn(
+        `WARN Twilio: ${from} is not a number on this account ` +
+          `(owned: ${owned.join(", ") || "none"}); SOS SMS will fail`
+      );
+      return;
+    }
+    console.log(`SMS provider: twilio, sending from ${from} (${type} account)`);
+    if (type === "Trial") {
+      console.log("  Trial account: SMS only reaches numbers listed under Verified Caller IDs.");
+    }
+  } catch (err) {
+    console.warn(`WARN Twilio credentials rejected (${err?.message ?? "unknown error"}); SOS SMS will fail`);
+  }
+}
+
 export async function startServer() {
   await connectDB();
   const server = app.listen(env.PORT, () =>
@@ -37,6 +64,7 @@ export async function startServer() {
 
   // Fire-and-forget so a slow or absent bot never delays startup; never rejects.
   probeBots().catch((err) => console.warn(`WARN bot probe failed: ${err?.message ?? "unknown error"}`));
+  probeSms().catch((err) => console.warn(`WARN SMS probe failed: ${err?.message ?? "unknown error"}`));
 
   const shutdown = (signal) => {
     console.log(`${signal} received, shutting down`);
