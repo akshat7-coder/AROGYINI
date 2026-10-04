@@ -1,11 +1,12 @@
 import User from "../models/User.js";
 import { AppError } from "../utils/AppError.js";
+import { escapeRegex } from "../utils/escapeRegex.js";
 
 export async function listUsers({ page, limit, skip, search, role }) {
   const filter = {};
   if (role) filter.role = role;
   if (search) {
-    const pattern = new RegExp(RegExp.escape(search), "i");
+    const pattern = new RegExp(escapeRegex(search), "i");
     filter.$or = [{ name: pattern }, { email: pattern }];
   }
 

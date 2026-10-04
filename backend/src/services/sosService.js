@@ -1,6 +1,6 @@
 import EmergencyContact from "../models/EmergencyContact.js";
 import SosEvent from "../models/SosEvent.js";
-import { sendSms } from "./sms/index.js";
+import { providerName, sendSms } from "./sms/index.js";
 import { AppError } from "../utils/AppError.js";
 import { formatIstDateTime } from "../utils/dates.js";
 
@@ -30,14 +30,21 @@ async function notify(contacts, body) {
 export async function triggerSos(user, { latitude, longitude, accuracy, message }) {
   const contacts = await EmergencyContact.find({ user: user.id }).sort({ priority: 1 });
   if (contacts.length === 0) {
+    console.warn("[sos] request received but no emergency contacts are configured");
     throw new AppError(400, "NO_CONTACTS", "Add at least one emergency contact before using SOS");
   }
 
   const existing = await SosEvent.findOne({ user: user.id, status: "active" });
-  if (existing) return { event: existing, created: false };
+  if (existing) {
+    console.log("[sos] request reused an existing active event; no SMS was sent");
+    return { event: existing, created: false };
+  }
 
+  console.log(`[sos] sending alerts to ${contacts.length} contact(s) via ${providerName}`);
   const mapsUrl = mapsUrlFor({ latitude, longitude });
   const notifications = await notify(contacts, buildSosMessage({ userName: user.name, mapsUrl, message }));
+  const sent = notifications.filter(({ status }) => status === "sent").length;
+  console.log(`[sos] SMS provider calls finished: ${sent}/${notifications.length} accepted`);
 
   const event = await SosEvent.create({
     user: user.id,

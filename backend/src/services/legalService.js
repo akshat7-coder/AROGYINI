@@ -1,12 +1,13 @@
 import LegalRight from "../models/LegalRight.js";
 import { AppError } from "../utils/AppError.js";
 import { buildDraft } from "./draftTemplates/index.js";
+import { escapeRegex } from "../utils/escapeRegex.js";
 
 export async function listRights({ page, limit, skip, category, search }) {
   const filter = { isPublished: true };
   if (category) filter.category = category;
   if (search) {
-    const pattern = new RegExp(RegExp.escape(search), "i");
+    const pattern = new RegExp(escapeRegex(search), "i");
     filter.$or = [{ title: pattern }, { actName: pattern }, { summary: pattern }];
   }
 
@@ -24,7 +25,7 @@ export async function listAllRights({ page, limit, skip, category, search, isPub
     ...(isPublished === undefined ? {} : { isPublished }),
   };
   if (search) {
-    const pattern = new RegExp(RegExp.escape(search), "i");
+    const pattern = new RegExp(escapeRegex(search), "i");
     filter.$or = [{ title: pattern }, { actName: pattern }, { summary: pattern }];
   }
 

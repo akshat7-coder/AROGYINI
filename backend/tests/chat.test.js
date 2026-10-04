@@ -51,6 +51,29 @@ describe("intentService", () => {
     expect(detect(content).intent).toBe(expected);
   });
 
+  // The indexed reference is a general medical encyclopedia, so clinical terms outside the
+  // women's-health keyword list must still reach the medical bot, not the general fallback.
+  it.each([
+    ["Acute poststreptococcal glomerulonephritis", "medical"],
+    ["thrombosis", "medical"],
+    ["appendectomy", "medical"],
+    ["neuropathy in my feet", "medical"],
+    ["what is diabetes", "medical"],
+    ["I have a bad headache and fever", "medical"],
+    ["what is PCOD", "medical"],
+  ])("sends the clinical question %s to the medical bot", (content, expected) => {
+    expect(routeToBot(detect(content).intent)).toBe(expected);
+  });
+
+  it.each([
+    ["which returnship programmes take women in tech", "career"],
+    ["how do I file a POSH complaint at work", "legal"],
+    ["someone is following me home right now", "safety"],
+    ["what is the weather today", "general"],
+  ])("still routes %s to %s", (content, expected) => {
+    expect(detect(content).intent).toBe(expected);
+  });
+
   it.each([
     ["bachao koi mera peecha kar raha hai", true],
     ["madad karo please", true],

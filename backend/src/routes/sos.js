@@ -14,7 +14,6 @@ import {
 
 const router = Router();
 
-router.use(authenticate);
 
 router.post("/", sosLimiter, validate(triggerSosSchema), triggerSos);
 router.get("/", validate({ query: sosListQuerySchema }), listSosEvents);

@@ -1,7 +1,7 @@
 # AROGYINI — medical RAG bot
 
 Flask service on **port 5000**. Answers women's health questions from the PDFs in `data/`,
-retrieved from a Pinecone index and summarised by **Groq** (Llama 3.1).
+retrieved from a Pinecone index and summarised by **Gemini** (or Groq).
 
 AROGYINI's backend calls this bot as the `medical` bot (`MEDICAL_BOT_URL`, default
 `http://localhost:5000`).
@@ -31,7 +31,18 @@ cp .env.example .env            # then fill in the two keys
 
 Keys needed (both have a free tier):
 - `PINECONE_API_KEY` — https://app.pinecone.io
-- `GROQ_API_KEY` — https://console.groq.com/keys
+- the key for your LLM provider, below
+
+## LLM provider
+
+| Variable | Values | Default |
+|---|---|---|
+| `LLM_PROVIDER` | `gemini` \| `groq` | `gemini` |
+| `LLM_MODEL` | any model of that provider | `gemini-2.5-flash` / `llama-3.1-8b-instant` |
+
+`gemini` needs `GEMINI_API_KEY` (https://aistudio.google.com/apikey), `groq` needs
+`GROQ_API_KEY` (https://console.groq.com/keys). Both are reached through their
+OpenAI-compatible chat-completions endpoint, so it is one code path either way.
 
 ## Build the index
 
@@ -44,6 +55,13 @@ python store_index.py --rebuild    # wipe and re-upload
 
 The index is created with 384 dimensions and cosine distance to match
 `sentence-transformers/all-MiniLM-L6-v2`. Change the model and you must `--rebuild`.
+
+## Retrieval tuning
+
+`CHUNK_SIZE` / `CHUNK_OVERLAP` in `src/helper.py` are 1000/200. Changing either means
+`--rebuild`, since the stored vectors are per chunk. `TOP_K` (env, default 10) is how many
+chunks are sent to the model and can be changed without rebuilding: smaller chunks or a
+small `TOP_K` leave the model too little context and it will answer that it does not know.
 
 ## Run
 

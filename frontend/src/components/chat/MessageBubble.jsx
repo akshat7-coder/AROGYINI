@@ -1,16 +1,24 @@
-import { AlertTriangle, Flag, Timer } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertTriangle, FileText, Flag, Timer } from "lucide-react";
 import EmergencyCard from "./EmergencyCard.jsx";
 import { renderMarkdown } from "../../lib/markdown.jsx";
 import { BOT_META, formatLatency } from "../../lib/chat.js";
 
+// A cold RAG bot can take this long just to load its models, so reassure instead of looking stuck.
+const SLOW_REPLY_MS = 8000;
+
 const timeOf = (value) =>
   new Date(value).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "numeric", minute: "2-digit" });
+
+const CITING_BOTS = new Set(["medical", "legal"]);
 
 export default function MessageBubble({ message, onReport }) {
   const mine = message.role === "user";
   const failed = message.status === "failed";
   const bot = BOT_META[message.bot];
   const latency = formatLatency(message.latencyMs);
+  // Older messages predate the field, and only the RAG bots cite anything.
+  const sources = CITING_BOTS.has(message.bot) && !failed ? (message.sources ?? []) : [];
 
   if (mine) {
     return (
@@ -42,6 +50,24 @@ export default function MessageBubble({ message, onReport }) {
           ) : null}
 
           <div className="space-y-2.5">{renderMarkdown(message.content)}</div>
+
+          {sources.length > 0 ? (
+            <div className="mt-3 border-t border-slate-900/5 pt-2.5">
+              <p className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">Sources</p>
+              <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                {sources.map((entry, index) => (
+                  <li
+                    key={`${entry.source || entry.title}-${index}`}
+                    title={entry.source || entry.title}
+                    className="inline-flex max-w-full items-center gap-1 rounded-full bg-slate-900/5 px-2 py-0.5 text-[11px] text-slate-600"
+                  >
+                    <FileText className="size-3 shrink-0" aria-hidden="true" />
+                    <span className="truncate">{entry.title || entry.source}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           {message.emergency ? <EmergencyCard /> : null}
         </div>
@@ -80,10 +106,17 @@ export default function MessageBubble({ message, onReport }) {
 }
 
 export function TypingIndicator() {
+  const [slow, setSlow] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSlow(true), SLOW_REPLY_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <li className="flex justify-start" aria-live="polite">
-      <div className="rounded-3xl rounded-bl-lg border border-white/80 bg-white/80 px-4 py-3.5">
-        <span className="sr-only">The assistant is replying</span>
+      <div className="flex items-center gap-2.5 rounded-3xl rounded-bl-lg border border-white/80 bg-white/80 px-4 py-3.5">
+        <span className="sr-only">{slow ? "Still thinking" : "The assistant is replying"}</span>
         <span className="flex gap-1.5" aria-hidden="true">
           {[0, 150, 300].map((delay) => (
             <span
@@ -93,6 +126,11 @@ export function TypingIndicator() {
             />
           ))}
         </span>
+        {slow ? (
+          <span className="text-xs text-slate-500" aria-hidden="true">
+            Still thinking&hellip;
+          </span>
+        ) : null}
       </div>
     </li>
   );

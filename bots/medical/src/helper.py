@@ -8,6 +8,11 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 EMBEDDING_DIM = 384
 
+# 500/20 sliced sentences mid-word, so retrieved passages started mid-thought.
+# Changing these means re-running store_index.py --rebuild.
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 200
+
 
 def load_pdf_file(data: str) -> List[Document]:
     return DirectoryLoader(data, glob="*.pdf", loader_cls=PyPDFLoader).load()
@@ -28,7 +33,7 @@ def filter_to_minimal_docs(docs: List[Document]) -> List[Document]:
 
 
 def text_split(docs: List[Document]) -> List[Document]:
-    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+    splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
     return splitter.split_documents(docs)
 
 

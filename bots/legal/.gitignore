@@ -1,0 +1,9 @@
+embeddings/
+.venv/
+venv/
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+data/cleaned_texts/
+data/chunks/

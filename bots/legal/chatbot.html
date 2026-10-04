@@ -71,8 +71,8 @@ async function askBot() {
         `<div class='message user'>${question}</div>`;
     document.getElementById("question").value = "";
 
-    // Call your Render API
-    let response = await fetch("https://women-law-rag-bot-2.onrender.com/ask", {
+    // Local legal RAG bot
+    let response = await fetch("http://localhost:8002/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question })
@@ -82,7 +82,7 @@ async function askBot() {
 
     // Display bot reply
     document.getElementById("chatbox").innerHTML += 
-        `<div class='message bot'>${data.answer}</div>`;
+        `<div class='message bot'>${data.answer || data.error || 'No answer.'}</div>`;
 
     // Auto-scroll
     document.getElementById("chatbox").scrollTop =

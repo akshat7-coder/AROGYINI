@@ -178,6 +178,39 @@ describe("POST /api/admin/chat/issues/:id/retry", () => {
     });
   });
 
+  it("replaces the sources along with the content", async () => {
+    const admin = await createAdmin();
+    const { user, conversationId, issue, message } = await withFailedMessage();
+
+    stubAxios(() => ({
+      answer: "A sourced answer.",
+      sources: [{ title: "Medical book", source: "Medical_book.pdf" }],
+    }));
+    const res = await request(app).post(`/api/admin/chat/issues/${issue.id}/retry`).set(authHeader(admin));
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.message.sources).toEqual([{ title: "Medical book", source: "Medical_book.pdf" }]);
+
+    const stored = await Message.findById(message.id);
+    expect(stored.sources.map((row) => row.title)).toEqual(["Medical book"]);
+
+    // and the user sees them on their own copy of the conversation
+    const seen = await request(app).get(`/api/chat/conversations/${conversationId}`).set(authHeader(user));
+    expect(seen.body.data.messages[1].sources).toEqual([{ title: "Medical book", source: "Medical_book.pdf" }]);
+  });
+
+  it("clears stale sources when the retried answer has none", async () => {
+    const admin = await createAdmin();
+    const { issue, message } = await withFailedMessage();
+    await Message.findByIdAndUpdate(message.id, { sources: [{ title: "Stale", source: "old.txt" }] });
+
+    stubAxios(botAnswer("A fresh answer with no citations."));
+    const res = await request(app).post(`/api/admin/chat/issues/${issue.id}/retry`).set(authHeader(admin));
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.message.sources).toEqual([]);
+  });
+
   it("lets the user see the repaired answer", async () => {
     const admin = await createAdmin();
     const { user, conversationId, issue } = await withFailedMessage();
@@ -344,17 +377,55 @@ describe("admin bot configuration", () => {
     ).toBe(400);
   });
 
-  it("pings a RAG bot and reports ok with a latency", async () => {
+  it("checks a RAG bot through /health, costing no LLM call", async () => {
     const admin = await createAdmin();
-    const adapter = stubAxios(botAnswer("pong from the medical bot"));
+    const adapter = stubAxios(() => ({ status: "ok", ready: true, reason: "ok", chunks: 1234 }));
 
     const res = await request(app).post("/api/admin/chat/bots/medical/test").set(authHeader(admin));
 
     expect(res.status).toBe(200);
-    expect(res.body.data).toMatchObject({ key: "medical", ok: true, url: env.MEDICAL_BOT_URL });
+    expect(res.body.data).toMatchObject({ key: "medical", ok: true, ready: true, url: env.MEDICAL_BOT_URL });
     expect(typeof res.body.data.latencyMs).toBe("number");
+    expect(adapter.mock.calls).toHaveLength(1);
+    expect(adapter.mock.calls[0][0].url).toBe(`${env.MEDICAL_BOT_URL}/health`);
+    expect(adapter.mock.calls[0][0].method).toBe("get");
+  });
+
+  it("reports ok false when the bot answers /health but its index is not ready", async () => {
+    const admin = await createAdmin();
+    stubAxios(() => ({ status: "ok", ready: false, reason: "the index is not built - run build_index.py" }));
+
+    const res = await request(app).post("/api/admin/chat/bots/legal/test").set(authHeader(admin));
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toMatchObject({ key: "legal", ok: false, ready: false });
+    expect(res.body.data.error).toContain("build_index.py");
+  });
+
+  it("falls back to one /ask when the bot has no /health route", async () => {
+    const admin = await createAdmin();
+    const adapter = jest.fn(async (config) => {
+      if (config.url.endsWith("/health")) {
+        throw new axios.AxiosError("Not Found", "ERR_BAD_REQUEST", config, null, {
+          status: 404,
+          statusText: "Not Found",
+          data: {},
+          headers: {},
+          config,
+        });
+      }
+      return { data: { answer: "pong from an old bot" }, status: 200, statusText: "OK", headers: {}, config };
+    });
+    axios.defaults.adapter = adapter;
+
+    const res = await request(app).post("/api/admin/chat/bots/medical/test").set(authHeader(admin));
+
+    expect(res.body.data).toMatchObject({ key: "medical", ok: true });
     expect(res.body.data.preview).toContain("pong");
-    expect(JSON.parse(adapter.mock.calls[0][0].data)).toEqual({ question: "ping" });
+    expect(adapter.mock.calls.map(([config]) => config.url)).toEqual([
+      `${env.MEDICAL_BOT_URL}/health`,
+      `${env.MEDICAL_BOT_URL}/ask`,
+    ]);
   });
 
   it("reports ok false with the error when the bot is unreachable", async () => {
@@ -393,17 +464,17 @@ describe("admin bot configuration", () => {
     }
   });
 
-  it("uses an admin-edited URL for the test ping", async () => {
+  it("uses an admin-edited URL for the test check", async () => {
     const admin = await createAdmin();
     await request(app)
       .patch("/api/admin/chat/bots/legal")
       .set(authHeader(admin))
       .send({ url: "http://127.0.0.1:9100" });
-    const adapter = stubAxios(botAnswer("pong"));
+    const adapter = stubAxios(() => ({ status: "ok", ready: true }));
 
     await request(app).post("/api/admin/chat/bots/legal/test").set(authHeader(admin));
 
-    expect(adapter.mock.calls[0][0].url).toBe("http://127.0.0.1:9100/ask");
+    expect(adapter.mock.calls[0][0].url).toBe("http://127.0.0.1:9100/health");
   });
 });
 

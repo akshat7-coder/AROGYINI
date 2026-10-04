@@ -4,6 +4,7 @@ import Application from "../models/Application.js";
 import User from "../models/User.js";
 import { AppError } from "../utils/AppError.js";
 import { todayUtc } from "../utils/dates.js";
+import { escapeRegex } from "../utils/escapeRegex.js";
 
 export async function listJobs({ page, limit, skip, type, category, search, careerBreakFriendly }) {
   const filter = { isActive: true };
@@ -11,7 +12,7 @@ export async function listJobs({ page, limit, skip, type, category, search, care
   if (category) filter.category = category;
   if (careerBreakFriendly !== undefined) filter.careerBreakFriendly = careerBreakFriendly;
   if (search) {
-    const pattern = new RegExp(RegExp.escape(search), "i");
+    const pattern = new RegExp(escapeRegex(search), "i");
     filter.$or = [{ title: pattern }, { company: pattern }, { description: pattern }];
   }
 

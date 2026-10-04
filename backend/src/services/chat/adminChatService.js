@@ -1,7 +1,6 @@
 import ChatIssue from "../../models/ChatIssue.js";
 import Message from "../../models/Message.js";
 import BotConfig, { BOT_KEYS } from "../../models/BotConfig.js";
-import { env } from "../../config/env.js";
 import { AppError } from "../../utils/AppError.js";
 import { botDefaults } from "./chatService.js";
 import * as ragBot from "./providers/ragBotProvider.js";
@@ -74,9 +73,12 @@ export async function retryIssue(admin, id) {
   const startedAt = Date.now();
   let content;
   let usedBot;
+  let sources = [];
   try {
     if (key === "medical" || key === "legal") {
-      content = await ragBot.ask({ url: bot.url, timeoutMs: bot.timeoutMs, question: question.content });
+      const result = await ragBot.ask({ url: bot.url, timeoutMs: bot.timeoutMs, question: question.content });
+      content = result.answer;
+      sources = result.sources;
       usedBot = key;
     } else if (llm.hasApiKey()) {
       content = await llm.complete({ question: question.content, history: [], timeoutMs: bot.timeoutMs });
@@ -91,6 +93,7 @@ export async function retryIssue(admin, id) {
 
   assistantMessage.content = content;
   assistantMessage.bot = usedBot;
+  assistantMessage.sources = sources;
   assistantMessage.status = "ok";
   assistantMessage.latencyMs = Date.now() - startedAt;
   await assistantMessage.save();
@@ -138,8 +141,32 @@ export async function testBot(key) {
 
   try {
     if (key === "medical" || key === "legal") {
-      const answer = await ragBot.ask({ url: bot.url, timeoutMs: bot.timeoutMs, question: "ping" });
-      return { key, ok: true, latencyMs: Date.now() - startedAt, url: bot.url, preview: answer.slice(0, 200) };
+      try {
+        const { ready, reason } = await ragBot.health({ url: bot.url, timeoutMs: bot.timeoutMs });
+        // Report the reason once: as a preview when ready, as the error when not.
+        return {
+          key,
+          ok: ready,
+          ready,
+          latencyMs: Date.now() - startedAt,
+          url: bot.url,
+          ...(ready
+            ? { preview: `/health: ${reason || "ready"}` }
+            : { error: reason || "The bot is running but its index is not ready" }),
+        };
+      } catch (err) {
+        if (!ragBot.isNotFound(err)) throw err;
+        // An older bot without /health: fall back to one /ask, which does cost a call.
+        const { answer } = await ragBot.ask({ url: bot.url, timeoutMs: bot.timeoutMs, question: "ping" });
+        return {
+          key,
+          ok: true,
+          ready: true,
+          latencyMs: Date.now() - startedAt,
+          url: bot.url,
+          preview: answer.slice(0, 200),
+        };
+      }
     }
     if (!llm.hasApiKey()) {
       return {

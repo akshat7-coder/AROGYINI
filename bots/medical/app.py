@@ -3,7 +3,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
-from groq import Groq
+from openai import OpenAI
 from pinecone import Pinecone
 
 from src.helper import EMBEDDING_MODEL, download_hugging_face_embeddings
@@ -12,29 +12,44 @@ from src.prompt import SYSTEM_PROMPT
 load_dotenv()
 
 INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "medical-chatbot")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
-TOP_K = 3
+# 500-char chunks are small, so k=3 gave the model ~1.4k chars to work with. Tune per index.
+TOP_K = int(os.getenv("TOP_K", "10"))
+
+# Gemini and Groq both speak the OpenAI chat-completions API, so one client covers both.
+PROVIDERS = {
+    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/", "GEMINI_API_KEY", "gemini-2.5-flash"),
+    "groq": ("https://api.groq.com/openai/v1", "GROQ_API_KEY", "openai/gpt-oss-120b"),
+}
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").strip().lower()
 
 app = Flask(__name__)
 
 # Everything expensive lives here and is filled in once by _startup() below.
-state = {"ready": False, "reason": "not initialised", "vectors": 0}
+state = {"ready": False, "reason": "not initialised", "vectors": 0, "model": ""}
 _embeddings = None
 _index = None
-_groq = None
+_llm = None
+_model = ""
 
 
 def _startup() -> None:
-    """Load the embedding model, Pinecone index and Groq client once, at import."""
-    global _embeddings, _index, _groq
+    """Load the embedding model, Pinecone index and LLM client once, at import."""
+    global _embeddings, _index, _llm, _model
+
+    if LLM_PROVIDER not in PROVIDERS:
+        state["reason"] = f"LLM_PROVIDER must be one of {sorted(PROVIDERS)}, not {LLM_PROVIDER!r}"
+        return
+    base_url, key_var, default_model = PROVIDERS[LLM_PROVIDER]
+    _model = os.getenv("LLM_MODEL") or default_model
+    state["model"] = f"{LLM_PROVIDER}/{_model}"
 
     pinecone_key = os.getenv("PINECONE_API_KEY")
-    groq_key = os.getenv("GROQ_API_KEY")
+    llm_key = os.getenv(key_var)
     if not pinecone_key:
         state["reason"] = "PINECONE_API_KEY is not set"
         return
-    if not groq_key:
-        state["reason"] = "GROQ_API_KEY is not set"
+    if not llm_key:
+        state["reason"] = f"LLM_PROVIDER={LLM_PROVIDER} needs {key_var}"
         return
 
     try:
@@ -53,10 +68,10 @@ def _startup() -> None:
 
     print(f"Loading embedding model {EMBEDDING_MODEL}...")
     _embeddings = download_hugging_face_embeddings()
-    _groq = Groq(api_key=groq_key)
+    _llm = OpenAI(api_key=llm_key, base_url=base_url)
     state["ready"] = True
     state["reason"] = "ok"
-    print(f"Ready. Index '{INDEX_NAME}' holds {state['vectors']} vectors, LLM {GROQ_MODEL}.")
+    print(f"Ready. Index '{INDEX_NAME}' holds {state['vectors']} vectors, LLM {state['model']}.")
 
 
 def retrieve(question: str) -> list[dict]:
@@ -70,8 +85,8 @@ def retrieve(question: str) -> list[dict]:
 
 def complete(question: str, docs: list[dict]) -> str:
     context = "\n\n".join(d.get("text", "") for d in docs) or "No reference material found."
-    reply = _groq.chat.completions.create(
-        model=GROQ_MODEL,
+    reply = _llm.chat.completions.create(
+        model=_model,
         temperature=0.3,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT.format(context=context)},
@@ -104,7 +119,7 @@ def health():
         reason=state["reason"],
         index=INDEX_NAME,
         vectors=state["vectors"],
-        model=GROQ_MODEL,
+        model=state["model"],
         embedding_model=EMBEDDING_MODEL,
     )
 

@@ -9,6 +9,7 @@ export async function send({ to, body }) {
   if (to === ALWAYS_FAILS) throw new Error("Invalid recipient (magic test number)");
   const sid = `memory-${sent.length + 1}`;
   sent.push({ to, body, sid, sentAt: new Date() });
+  console.log(`Sent SMS to ${to}: ${body}`);
   return { sid };
 }
 

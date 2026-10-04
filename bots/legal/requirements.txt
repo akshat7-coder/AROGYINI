@@ -1,11 +1,16 @@
-langchain-openai
-langchain-community
-langchain-text-splitters
-chromadb
-python-dotenv
-openai
-PyPDF2
-tqdm
-fastapi
-uvicorn
-
+# Minimum versions, resolved and import-verified on Python 3.14.
+fastapi>=0.142
+uvicorn>=0.54
+python-dotenv>=1.2
+langchain-chroma>=1.1
+langchain-core>=1.6
+langchain-text-splitters>=1.1
+pypdf>=6.0
+# LLM providers - LLM_PROVIDER picks one at runtime, both are small clients.
+openai>=3.0
+groq>=1.7
+# EMBEDDINGS=openai needs only `openai` above; these two are for EMBEDDINGS=huggingface.
+langchain-huggingface>=1.2
+sentence-transformers>=6.1
+pytest>=9.0
+httpx>=0.28

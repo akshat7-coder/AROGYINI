@@ -129,7 +129,8 @@ function BotRow({ bot, onChanged }) {
           )}
           <div className="min-w-0">
             <p className="font-semibold">
-              {result.ok ? "Responded" : "Did not respond"}
+              {/* ready === false means it answered /health but its index is not built yet. */}
+              {result.ok ? "Responded" : result.ready === false ? "Responded, but not ready" : "Did not respond"}
               {result.latencyMs === undefined ? null : (
                 <span className="tnum font-mono ml-2 font-normal">{result.latencyMs} ms</span>
               )}

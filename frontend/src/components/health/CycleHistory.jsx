@@ -11,7 +11,7 @@ import { useToast } from "../../context/toastContext.js";
 import { daysBetween, formatLong, formatShort } from "../../lib/dates.js";
 import { FLOW_TONES } from "../../lib/cycle.js";
 
-export default function CycleHistory({ logs, loading, onEdit, onChanged }) {
+export default function CycleHistory({ logs, loading, error, onEdit, onChanged }) {
   const toast = useToast();
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -39,6 +39,10 @@ export default function CycleHistory({ logs, loading, onEdit, onChanged }) {
           <Skeleton className="h-24 w-full rounded-2xl" />
           <Skeleton className="h-24 w-full rounded-2xl" />
         </div>
+      ) : error ? (
+        <p className="rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-900">
+          Could not load your history. {error.message}
+        </p>
       ) : logs.length === 0 ? (
         <EmptyState
           icon={Droplets}

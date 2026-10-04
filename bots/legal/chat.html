@@ -14,13 +14,13 @@
 <script>
 async function ask() {
     let question = document.getElementById("q").value;
-    let res = await fetch("https://your-rag-app.onrender.com/ask", {
+    let res = await fetch("http://localhost:8002/ask", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({question})
     });
     let data = await res.json();
-    document.getElementById("answer").innerText = data.answer;
+    document.getElementById("answer").innerText = data.answer || data.error || "No answer.";
 }
 </script>
 

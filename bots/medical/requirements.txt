@@ -3,7 +3,8 @@
 # Python 3.14 wheel. The pinecone SDK is called directly instead.
 flask>=3.1
 python-dotenv>=1.2
-groq>=1.7
+# Gemini and Groq are both reached through their OpenAI-compatible endpoints.
+openai>=3.0
 pinecone>=10.0
 langchain-community>=0.4
 langchain-core>=1.6

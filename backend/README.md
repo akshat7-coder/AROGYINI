@@ -398,6 +398,8 @@ TWILIO_PHONE_NUMBER=+15551234567
    the server refuses to start.
 4. Trigger an SOS and check the event's `notifications` array, then cross-check the `providerSid`
    values against Twilio's Messaging log.
+   The backend terminal logs each Twilio submission attempt, acceptance (SID and status), or
+   failure (Twilio error code and message); recipient numbers are masked.
 
 On a **trial account** three things will bite:
 

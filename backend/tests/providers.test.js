@@ -28,14 +28,40 @@ afterEach(() => {
 });
 
 describe("ragBotProvider", () => {
-  it("posts the question and returns the trimmed answer", async () => {
-    const adapter = stubAxios(() => ({ answer: "  An answer.  " }));
+  it("posts the question and returns the trimmed answer with its sources", async () => {
+    const adapter = stubAxios(() => ({ answer: "  An answer.  ", sources: [{ title: "Act", source: "a.txt" }] }));
 
-    const answer = await ragBot.ask({ url: "http://bot.test", timeoutMs: 1234, question: "hello" });
+    const result = await ragBot.ask({ url: "http://bot.test", timeoutMs: 1234, question: "hello" });
 
-    expect(answer).toBe("An answer.");
+    expect(result).toEqual({ answer: "An answer.", sources: [{ title: "Act", source: "a.txt" }] });
     expect(adapter.mock.calls[0][0].url).toBe("http://bot.test/ask");
     expect(adapter.mock.calls[0][0].timeout).toBe(1234);
+  });
+
+  it("returns an empty sources list when the bot omits it", async () => {
+    stubAxios(() => ({ answer: "An answer." }));
+
+    const result = await ragBot.ask({ url: "http://bot.test", timeoutMs: 100, question: "hello" });
+
+    expect(result).toEqual({ answer: "An answer.", sources: [] });
+  });
+
+  it("gets ready and the reason from /health", async () => {
+    const adapter = stubAxios(() => ({ status: "ok", ready: true, reason: "ok", chunks: 12 }));
+
+    const result = await ragBot.health({ url: "http://bot.test///", timeoutMs: 500 });
+
+    expect(result).toMatchObject({ ready: true, reason: "ok" });
+    expect(result.details.chunks).toBe(12);
+    expect(adapter.mock.calls[0][0].url).toBe("http://bot.test/health");
+    expect(adapter.mock.calls[0][0].method).toBe("get");
+  });
+
+  it("treats a missing or non-true ready flag as not ready", async () => {
+    for (const payload of [{ status: "ok" }, { ready: "yes" }, { ready: false, reason: "no index" }]) {
+      stubAxios(() => payload);
+      expect((await ragBot.health({ url: "http://bot.test", timeoutMs: 500 })).ready).toBe(false);
+    }
   });
 
   it("strips trailing slashes from the configured URL", async () => {

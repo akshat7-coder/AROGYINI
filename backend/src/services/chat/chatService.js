@@ -89,10 +89,28 @@ export async function deleteConversation(userId, id) {
 // Returns the answer text plus which bot actually produced it.
 async function callProvider({ bot, question, history }) {
   if (bot.key === "medical" || bot.key === "legal") {
-    return { bot: bot.key, content: await ragBot.ask({ url: bot.url, timeoutMs: bot.timeoutMs, question }) };
+    try {
+      const { answer, sources } = await ragBot.ask({ url: bot.url, timeoutMs: bot.timeoutMs, question });
+      return { bot: bot.key, content: answer, sources };
+    } catch (err) {
+      // A RAG bot that is down or has no index should not cost the user their answer: the
+      // general LLM takes over. Rethrow when there is no LLM key, so the caller logs the issue.
+      if (!llm.hasApiKey()) throw err;
+      return {
+        bot: "general",
+        content: await llm.complete({ question, history, timeoutMs: bot.timeoutMs }),
+        sources: [],
+        degradedFrom: bot.key,
+        reason: err?.message ?? "unknown error",
+      };
+    }
   }
-  if (!llm.hasApiKey()) return { bot: "fallback", content: null };
-  return { bot: "general", content: await llm.complete({ question, history, timeoutMs: bot.timeoutMs }) };
+  if (!llm.hasApiKey()) return { bot: "fallback", content: null, sources: [] };
+  return {
+    bot: "general",
+    content: await llm.complete({ question, history, timeoutMs: bot.timeoutMs }),
+    sources: [],
+  };
 }
 
 export async function sendMessage({ user, conversationId, content, bot: requested = "auto" }) {
@@ -131,11 +149,19 @@ export async function sendMessage({ user, conversationId, content, bot: requeste
     assistant = {
       bot: result.bot,
       content: result.content ?? answerFor(intent),
+      sources: result.sources ?? [],
       status: "ok",
     };
+    // The user got an answer, but an admin still needs to know the RAG bot is unreachable.
+    if (result.degradedFrom) {
+      issue = {
+        type: "provider_error",
+        reason: `${result.degradedFrom} unavailable, answered by the general assistant: ${result.reason}`.slice(0, 1000),
+      };
+    }
   } catch (err) {
     const timedOut = isTimeout(err);
-    assistant = { bot: target.key, content: APOLOGY, status: "failed" };
+    assistant = { bot: target.key, content: APOLOGY, sources: [], status: "failed" };
     issue = {
       type: timedOut ? "timeout" : "provider_error",
       reason: `${target.key}: ${err?.message ?? "unknown error"}`.slice(0, 1000),
@@ -152,6 +178,7 @@ export async function sendMessage({ user, conversationId, content, bot: requeste
     bot: assistant.bot,
     intent,
     emergency,
+    sources: assistant.sources,
     status: assistant.status,
     latencyMs: Date.now() - startedAt,
   });

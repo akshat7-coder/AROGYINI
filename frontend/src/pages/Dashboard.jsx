@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Card, { CardHeader } from "../components/ui/Card.jsx";
 import Badge from "../components/ui/Badge.jsx";
+import Button from "../components/ui/Button.jsx";
 import Skeleton from "../components/ui/Skeleton.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import PillarCard from "../components/dashboard/PillarCard.jsx";
@@ -136,8 +137,33 @@ export default function Dashboard() {
 
   const sosReady = contacts.length > 0;
 
+  // Any failed loader would otherwise leave a tile reading "Not tracking yet", which looks
+  // like real data. One banner is enough: the tiles below already degrade to their defaults.
+  const loadFailed = [summaryState, contactsState, savedState, rightsState, rightCountState, chatsState].some(
+    (state) => state.error
+  );
+
+  const reloadAll = () => {
+    for (const state of [summaryState, contactsState, savedState, rightsState, rightCountState, chatsState]) {
+      if (state.error) state.reload();
+    }
+  };
+
   return (
     <div className="space-y-5">
+      {loadFailed ? (
+        <div
+          className="flex flex-wrap items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-900"
+          role="status"
+        >
+          <span className="min-w-0 flex-1">
+            Some of your dashboard could not be loaded, so parts of this page may look empty.
+          </span>
+          <Button variant="secondary" size="md" onClick={reloadAll}>
+            Try again
+          </Button>
+        </div>
+      ) : null}
       <Card>
         <p className="text-brand-700 text-xs font-semibold tracking-wide uppercase">Welcome back</p>
         <h2 className="font-display mt-1 text-2xl font-semibold text-slate-900 sm:text-3xl">

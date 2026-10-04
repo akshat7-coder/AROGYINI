@@ -1,3 +1,5 @@
+import { escapeRegex } from "../../utils/escapeRegex.js";
+
 // Keyword routing, English plus commonly typed Hindi (Roman script). Deliberately simple and
 // readable: the external RAG bots do the real understanding, this only decides where to send it.
 const INTENT_KEYWORDS = {
@@ -12,6 +14,12 @@ const INTENT_KEYWORDS = {
     "discharge", "bleeding", "breast", "thyroid", "anemia", "anaemia", "iron deficiency", "uti",
     "infection", "fever", "nausea", "doctor", "medicine", "tablet", "symptom", "symptoms", "vaccine",
     "menopause", "mahavari", "mahina", "dard", "bukhar", "dawa", "garbh", "pet dard",
+    // The indexed reference is a general medical encyclopedia, not only women's health.
+    "disease", "syndrome", "diagnosis", "treatment", "cure", "rash", "cough", "headache",
+    "migraine", "vomiting", "diarrhoea", "diarrhea", "allergy", "allergic", "diabetes",
+    "asthma", "cancer", "tumour", "tumor", "ulcer", "kidney", "liver", "lungs", "blood pressure",
+    "cholesterol", "antibiotic", "virus", "viral", "bacteria", "bacterial", "swelling",
+    "wound", "prescription", "surgery", "insulin", "injection", "pain",
   ],
   legal: [
     "law", "legal", "lawyer", "advocate", "fir", "police complaint", "court", "rights", "harassment",
@@ -35,10 +43,14 @@ const EMERGENCY_KEYWORDS = [
   "emergency", "unsafe right now", "trapped", "locked in", "bleeding heavily",
 ];
 
+// Clinical words the list above will never enumerate: route anything with a medical ending
+// (glomerulonephritis, thrombosis, neuropathy, appendectomy) to the medical bot.
+const MEDICAL_MORPHOLOGY = /\b\w{4,}(?:itis|osis|iasis|a?emia|opathy|ectomy|otomy|ostomy|algia|plasia)\b/i;
+
 const ESCAPED = new Map();
 function matcher(keyword) {
   if (!ESCAPED.has(keyword)) {
-    const escaped = RegExp.escape(keyword);
+    const escaped = escapeRegex(keyword);
     // Whole-word match for single words; phrases are matched as-is.
     ESCAPED.set(keyword, keyword.includes(" ") ? new RegExp(escaped, "i") : new RegExp(`\\b${escaped}\\b`, "i"));
   }
@@ -52,7 +64,10 @@ export function detect(content) {
   const emergency = EMERGENCY_KEYWORDS.some((keyword) => matcher(keyword).test(text));
 
   const scores = Object.entries(INTENT_KEYWORDS)
-    .map(([intent, keywords]) => ({ intent, score: countMatches(text, keywords) }))
+    .map(([intent, keywords]) => ({
+      intent,
+      score: countMatches(text, keywords) + (intent === "health" && MEDICAL_MORPHOLOGY.test(text) ? 1 : 0),
+    }))
     .filter((entry) => entry.score > 0)
     .sort((a, b) => b.score - a.score);
 

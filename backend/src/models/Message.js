@@ -15,6 +15,11 @@ const messageSchema = new mongoose.Schema(
     bot: { type: String, enum: MESSAGE_BOTS },
     intent: { type: String, enum: INTENTS },
     emergency: { type: Boolean, default: false },
+    // Citations from the medical and legal RAG bots; empty for the general LLM and fallbacks.
+    sources: {
+      type: [{ _id: false, title: { type: String, maxlength: 200 }, source: { type: String, maxlength: 200 } }],
+      default: undefined,
+    },
     status: { type: String, enum: MESSAGE_STATUSES, default: "ok", index: true },
     latencyMs: Number,
   },

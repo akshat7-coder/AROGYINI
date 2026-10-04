@@ -81,6 +81,15 @@ export default function Health() {
     <div className="space-y-5">
       {summaryState.loading ? (
         <CycleSummarySkeleton />
+      ) : summaryState.error ? (
+        // Without this the failed load falls through to the empty state, which wrongly
+        // tells the user they have never logged a period.
+        <Card>
+          <p className="text-sm text-amber-900">Could not load your cycle summary. {summaryState.error.message}</p>
+          <Button variant="secondary" size="md" className="mt-3" onClick={refresh}>
+            Try again
+          </Button>
+        </Card>
       ) : hasData ? (
         <CycleSummaryHero summary={summary} />
       ) : (
@@ -130,7 +139,13 @@ export default function Health() {
         <PhaseTips tips={summary?.tips} loading={summaryState.loading} />
       </div>
 
-      <CycleHistory logs={logs} loading={logsState.loading} onEdit={openEdit} onChanged={refresh} />
+      <CycleHistory
+        logs={logs}
+        loading={logsState.loading}
+        error={logsState.error}
+        onEdit={openEdit}
+        onChanged={refresh}
+      />
 
       {modalOpen ? (
         <LogPeriodModal

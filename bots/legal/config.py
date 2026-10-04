@@ -7,7 +7,7 @@ PERSIST_DIR = ROOT / "embeddings" / "vectors"
 MANIFEST = ROOT / "embeddings" / "manifest.json"
 PDF_DIR = ROOT / "data" / "pdfs"
 
-DEFAULT_LLM_MODELS = {"openai": "gpt-4o-mini", "groq": "llama-3.1-8b-instant"}
+DEFAULT_LLM_MODELS = {"openai": "gpt-4o-mini", "groq": "openai/gpt-oss-120b"}
 
 
 def embedding_config() -> tuple[str, str]:

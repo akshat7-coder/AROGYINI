@@ -132,78 +132,82 @@ CORS to configure in development.
 ### 4. The two Python bots (optional)
 
 Without them, health and legal questions return a failed-reply apology and raise an admin issue —
-which is itself worth seeing. With them, you get real answers. Each needs only `POST /ask` taking
-`{"question": "..."}` and returning `{"answer": "..."}`.
+which is itself worth seeing. With them, you get real RAG answers from a medical reference and
+from the Indian Acts.
 
-**Medical bot — Flask on 5000**
+Both live in `bots/` and speak the same contract, which is all the backend needs:
+
+| Route | |
+|---|---|
+| `GET /health` | `{"status":"ok","ready":true\|false, ...}` — `ready` is false until the index is built |
+| `POST /ask` | `{"question":"..."}` → `{"answer":"...","sources":[{"title":"...","source":"..."}]}` |
+
+Empty question → `400 {"error":"question is required"}`. No index, or an LLM failure →
+`503 {"error":"<reason>"}`. Never an HTML error page. Each bot has its own README with more detail.
+
+**Medical bot — Flask on 5000.** `bots/medical/data/*.pdf` → Pinecone, answered by Groq.
+Needs a free [Pinecone](https://app.pinecone.io) key and a free
+[Groq](https://console.groq.com/keys) key.
 
 ```bash
-mkdir -p bots/medical && cd bots/medical
+cd bots/medical
 python -m venv .venv
-.venv\Scripts\activate          # Windows;  source .venv/bin/activate on macOS/Linux
-pip install flask
+.venv\Scripts\activate                 # Windows;  source .venv/bin/activate on macOS/Linux
+pip install -r requirements.txt
+cp .env.example .env                   # fill in PINECONE_API_KEY and GROQ_API_KEY
+python store_index.py                  # builds the index; --rebuild to replace it
+python app.py                          # http://localhost:5000
 ```
 
-```python
-# app.py
-from flask import Flask, request, jsonify
+`store_index.py` skips the upload if the index already holds vectors, so re-running it is cheap.
+It creates the index with 384 dimensions to match `all-MiniLM-L6-v2`; change the embedding model
+and you must `--rebuild`. `GET /` also serves a small standalone chat UI.
 
-app = Flask(__name__)
-
-@app.post("/ask")
-def ask():
-    question = (request.get_json(silent=True) or {}).get("question", "").strip()
-    if not question:
-        return jsonify({"error": "question is required"}), 400
-    # replace this with your RAG pipeline
-    return jsonify({"answer": f"**Medical assistant**\nYou asked: {question}"})
-
-if __name__ == "__main__":
-    app.run(port=5000)
-```
+**Legal bot — FastAPI on 8002.** The `.txt` Acts in `bots/legal/` → a local Chroma index.
+Runs on OpenAI, or on a free Groq key alone with local embeddings.
 
 ```bash
-python app.py
+cd bots/legal
+python -m venv .venv
+.venv\Scripts\activate                 # Windows;  source .venv/bin/activate on macOS/Linux
+pip install -r requirements.txt
+cp .env.example .env                   # fill in a key
+python build_index.py                  # ~15 min of embedding; prints a per-file chunk count
+python server.py                       # http://localhost:8002
 ```
 
-**Legal bot — FastAPI on 8002**
+For the free route put this in `bots/legal/.env` — no OpenAI key needed, embeddings run on
+your machine:
+
+```ini
+LLM_PROVIDER=groq
+GROQ_API_KEY=gsk_...
+EMBEDDINGS=huggingface
+```
+
+`EMBEDDINGS` is recorded in `embeddings/manifest.json` when the index is built. Change it and
+`/health` reports `ready: false` and `/ask` returns 503 asking you to rebuild, rather than
+searching with vectors that no longer mean anything.
+
+**Check both before using the app:**
 
 ```bash
-mkdir -p bots/legal && cd bots/legal
-python -m venv .venv && .venv\Scripts\activate
-pip install fastapi uvicorn
+curl -s http://localhost:5000/health
+curl -s http://localhost:8002/health
+curl -s -X POST http://localhost:5000/ask -H "Content-Type: application/json" -d "{\"question\":\"What causes anaemia?\"}"
+curl -s -X POST http://localhost:8002/ask -H "Content-Type: application/json" -d "{\"question\":\"What is sexual harassment at work?\"}"
 ```
 
-```python
-# main.py
-from fastapi import FastAPI
-from pydantic import BaseModel
+A healthy `/health` reports `"ready": true` with a non-zero `vectors` (medical) or `chunks`
+(legal) count. `"ready": false` names the reason — almost always that the index is not built yet.
 
-app = FastAPI()
+**All four services at once:** `scripts\start-all.ps1` on Windows, `scripts/start-all.sh`
+elsewhere. Each opens its own terminal window and uses each bot's own `.venv`; do the one-time
+setup above first, or the script tells you which venv is missing and skips that bot.
 
-class Query(BaseModel):
-    question: str
-
-@app.post("/ask")
-def ask(query: Query):
-    # replace this with your RAG pipeline
-    return {"answer": f"**Legal assistant**\nYou asked: {query.question}"}
-```
-
-```bash
-uvicorn main:app --port 8002
-```
-
-Check both before using the app:
-
-```bash
-curl -s -X POST http://localhost:5000/ask -H "Content-Type: application/json" -d "{\"question\":\"ping\"}"
-curl -s -X POST http://localhost:8002/ask -H "Content-Type: application/json" -d "{\"question\":\"ping\"}"
-```
-
-The URLs come from `MEDICAL_BOT_URL` / `LEGAL_BOT_URL`, but **a URL saved in the admin UI wins
-over the env file**. `Admin → Chatbot` shows which is in effect (`env` or `database`) and has a
-Test button.
+The bot URLs come from `MEDICAL_BOT_URL` / `LEGAL_BOT_URL`, but **a URL saved in the admin UI
+wins over the env file**. `Admin → Chatbot` shows which is in effect (`env` or `database`) and has
+a Test button.
 
 ### 5. A general LLM (optional)
 

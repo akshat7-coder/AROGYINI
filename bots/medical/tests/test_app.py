@@ -61,3 +61,56 @@ def test_legacy_ui_route_returns_text(client, ready):
     res = client.post("/get", data={"msg": "What causes anaemia?"})
     assert res.status_code == 200
     assert res.get_data(as_text=True) == "Eat iron-rich food. See a doctor."
+
+
+def test_default_provider_is_gemini(monkeypatch, app_mod):
+    monkeypatch.setenv("PINECONE_API_KEY", "pc-test")
+    monkeypatch.setenv("GEMINI_API_KEY", "")
+    monkeypatch.setattr(app_mod, "LLM_PROVIDER", "gemini")
+
+    app_mod._startup()
+
+    assert app_mod.state["ready"] is False
+    assert app_mod.state["reason"] == "LLM_PROVIDER=gemini needs GEMINI_API_KEY"
+    assert app_mod.state["model"] == "gemini/gemini-2.5-flash"
+
+
+def test_groq_provider_asks_for_its_own_key(monkeypatch, app_mod):
+    monkeypatch.setenv("PINECONE_API_KEY", "pc-test")
+    monkeypatch.setenv("GROQ_API_KEY", "")
+    monkeypatch.setattr(app_mod, "LLM_PROVIDER", "groq")
+
+    app_mod._startup()
+
+    assert app_mod.state["reason"] == "LLM_PROVIDER=groq needs GROQ_API_KEY"
+    assert app_mod.state["model"] == "groq/openai/gpt-oss-120b"
+
+
+def test_llm_model_overrides_the_provider_default(monkeypatch, app_mod):
+    monkeypatch.setenv("PINECONE_API_KEY", "pc-test")
+    monkeypatch.setenv("GEMINI_API_KEY", "")
+    monkeypatch.setenv("LLM_MODEL", "gemini-3.8-flash")
+    monkeypatch.setattr(app_mod, "LLM_PROVIDER", "gemini")
+
+    app_mod._startup()
+
+    assert app_mod.state["model"] == "gemini/gemini-3.8-flash"
+
+
+def test_unknown_provider_is_rejected(monkeypatch, app_mod):
+    monkeypatch.setattr(app_mod, "LLM_PROVIDER", "openai")
+
+    app_mod._startup()
+
+    assert app_mod.state["ready"] is False
+    assert "LLM_PROVIDER must be one of" in app_mod.state["reason"]
+
+
+def test_pinecone_key_is_still_checked_first(monkeypatch, app_mod):
+    monkeypatch.setenv("PINECONE_API_KEY", "")
+    monkeypatch.setenv("GEMINI_API_KEY", "")
+    monkeypatch.setattr(app_mod, "LLM_PROVIDER", "gemini")
+
+    app_mod._startup()
+
+    assert app_mod.state["reason"] == "PINECONE_API_KEY is not set"
