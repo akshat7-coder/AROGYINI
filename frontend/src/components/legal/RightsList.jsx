@@ -59,7 +59,7 @@ export default function RightsList() {
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search POSH, dowry, maternity, cyber…"
             aria-label="Search legal rights"
-            className="focus-ring h-11 w-full rounded-2xl border border-slate-200 bg-white/80 pr-10 pl-10 text-sm text-slate-800 placeholder:text-slate-400 hover:border-slate-300"
+            className="focus-ring h-11 w-full rounded-2xl border border-slate-200 bg-white/80 pr-10 pl-10 text-sm text-slate-800 placeholder:text-slate-500 hover:border-slate-300"
           />
           {search ? (
             <button

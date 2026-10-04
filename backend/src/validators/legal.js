@@ -12,6 +12,16 @@ export const rightsQuerySchema = z.object({
   search: z.string().trim().max(120).optional(),
 });
 
+const boolish = z.enum(["true", "false"]).transform((value) => value === "true");
+
+export const adminRightsQuerySchema = z.object({
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  category: z.enum(LEGAL_CATEGORIES).optional(),
+  search: z.string().trim().max(120).optional(),
+  isPublished: boolish.optional(),
+});
+
 export const slugParamSchema = z.object({
   slug: z
     .string()

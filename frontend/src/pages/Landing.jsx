@@ -48,9 +48,11 @@ export default function Landing() {
 
   return (
     <div className="app-bg">
-      <div className="app-blob bg-brand-200/40 -top-32 -left-20 size-96" />
-      <div className="app-blob size-80 bg-teal-200/35 top-20 -right-24" />
-      <div className="app-blob size-72 bg-amber-100/50 bottom-32 left-1/3" />
+      <div className="app-blobs" aria-hidden="true">
+        <div className="app-blob bg-brand-200/40 -top-32 -left-20 size-96" />
+        <div className="app-blob size-80 bg-teal-200/35 top-20 -right-24" />
+        <div className="app-blob size-72 bg-amber-100/50 bottom-32 left-1/3" />
+      </div>
 
       <div className="relative mx-auto max-w-6xl px-5 py-6">
         <header className="flex items-center justify-between">

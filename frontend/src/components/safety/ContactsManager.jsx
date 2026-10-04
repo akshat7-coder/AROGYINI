@@ -258,7 +258,7 @@ export default function ContactsManager() {
                   <p className="truncate text-sm font-semibold text-slate-800">{contact.name}</p>
                   <p className="font-mono truncate text-xs text-slate-500">{contact.phone}</p>
                   {contact.relation ? (
-                    <p className="truncate text-xs text-slate-400 capitalize">{contact.relation}</p>
+                    <p className="truncate text-xs text-slate-500 capitalize">{contact.relation}</p>
                   ) : null}
                 </div>
               </div>

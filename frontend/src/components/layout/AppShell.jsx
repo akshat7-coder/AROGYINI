@@ -28,9 +28,11 @@ export default function AppShell() {
   return (
     <SosProvider>
     <div className="app-bg">
-      <div className="app-blob bg-brand-200/35 -top-24 -left-24 size-80" />
-      <div className="app-blob size-72 bg-teal-200/30 top-1/3 -right-24" />
-      <div className="app-blob size-72 bg-amber-100/40 bottom-0 left-1/4" />
+      <div className="app-blobs" aria-hidden="true">
+        <div className="app-blob bg-brand-200/35 -top-24 -left-24 size-80" />
+        <div className="app-blob size-72 bg-teal-200/30 top-1/3 -right-24" />
+        <div className="app-blob size-72 bg-amber-100/40 bottom-0 left-1/4" />
+      </div>
 
       <a
         href="#main"

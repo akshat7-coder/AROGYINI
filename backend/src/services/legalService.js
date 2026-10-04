@@ -17,6 +17,24 @@ export async function listRights({ page, limit, skip, category, search }) {
   return { rights, meta: { page, limit, total } };
 }
 
+// Admin listing: includes unpublished rights, which the public list hides.
+export async function listAllRights({ page, limit, skip, category, search, isPublished }) {
+  const filter = {
+    ...(category ? { category } : {}),
+    ...(isPublished === undefined ? {} : { isPublished }),
+  };
+  if (search) {
+    const pattern = new RegExp(RegExp.escape(search), "i");
+    filter.$or = [{ title: pattern }, { actName: pattern }, { summary: pattern }];
+  }
+
+  const [rights, total] = await Promise.all([
+    LegalRight.find(filter).sort({ category: 1, year: 1 }).skip(skip).limit(limit),
+    LegalRight.countDocuments(filter),
+  ]);
+  return { rights, meta: { page, limit, total } };
+}
+
 export async function getRightBySlug(slug) {
   const right = await LegalRight.findOne({ slug: slug.toLowerCase(), isPublished: true });
   if (!right) throw new AppError(404, "NOT_FOUND", "Legal right not found");

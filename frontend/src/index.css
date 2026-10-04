@@ -12,11 +12,10 @@
   --color-brand-600: oklch(0.586 0.253 17.585);
   --color-brand-700: oklch(0.514 0.222 16.935);
 
-  --color-health: oklch(0.645 0.246 16.439);
+  --color-health: oklch(0.586 0.253 17.585);
   --color-legal: oklch(0.511 0.262 276.966);
-  --color-career: oklch(0.6 0.118 184.704);
+  --color-career: oklch(0.511 0.096 186.391);
   --color-safety: oklch(0.577 0.245 27.325);
-  --color-accent: oklch(0.769 0.188 70.08);
 }
 
 @layer base {
@@ -56,6 +55,12 @@
   /* The page background: soft gradient plus blurred colour blobs. */
   .app-bg {
     @apply relative min-h-dvh bg-gradient-to-br from-rose-50 via-white to-teal-50;
+  }
+
+  /* Blobs sit outside the viewport edges, so they are clipped by their own layer.
+     overflow-hidden cannot go on .app-bg: it would break the sticky top bar. */
+  .app-blobs {
+    @apply pointer-events-none absolute inset-0 overflow-hidden;
   }
 
   .app-blob {

@@ -6,10 +6,10 @@ import { addDays, formatMonthYear, isoDay, isoRange, monthGrid, todayIso } from 
 const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
 const LEGEND = [
-  { label: "Period", className: "bg-rose-500" },
+  { label: "Period", className: "bg-rose-600" },
   { label: "Predicted", className: "border-2 border-dashed border-rose-400 bg-rose-50" },
   { label: "Fertile", className: "bg-teal-100" },
-  { label: "Ovulation", className: "bg-teal-500" },
+  { label: "Ovulation", className: "bg-teal-700" },
 ];
 
 export default function CycleCalendar({ logs = [], summary }) {
@@ -81,7 +81,7 @@ export default function CycleCalendar({ logs = [], summary }) {
 
       <div className="grid grid-cols-7 gap-1" role="grid" aria-label={`Cycle calendar for ${monthLabel}`}>
         {WEEKDAYS.map((weekday) => (
-          <div key={weekday} className="pb-1 text-center text-[11px] font-semibold text-slate-400">
+          <div key={weekday} className="pb-1 text-center text-[11px] font-semibold text-slate-500">
             {weekday}
           </div>
         ))}
@@ -104,9 +104,9 @@ export default function CycleCalendar({ logs = [], summary }) {
           ].filter(Boolean);
 
           let tone = "text-slate-600";
-          if (isLogged) tone = "bg-rose-500 text-white font-semibold";
+          if (isLogged) tone = "bg-rose-600 text-white font-semibold";
           else if (isPredicted) tone = "border-2 border-dashed border-rose-400 bg-rose-50 text-rose-700";
-          else if (isOvulation) tone = "bg-teal-500 text-white font-semibold";
+          else if (isOvulation) tone = "bg-teal-700 text-white font-semibold";
           else if (isFertile) tone = "bg-teal-100 text-teal-800";
 
           return (

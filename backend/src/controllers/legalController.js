@@ -16,6 +16,12 @@ export async function createDraft(req, res) {
   return created(res, legalService.createDraft(req.body));
 }
 
+export async function listAllRights(req, res) {
+  const { page, limit, skip } = parsePagination(req.query);
+  const { rights, meta } = await legalService.listAllRights({ page, limit, skip, ...req.query });
+  return paginated(res, rights, meta);
+}
+
 export async function createRight(req, res) {
   return created(res, { right: await legalService.createRight(req.body) });
 }

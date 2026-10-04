@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { useLocation } from "react-router";
-import { Droplets, Lightbulb, Plus } from "lucide-react";
+import { useLocation, useNavigate } from "react-router";
+import { Droplets, Lightbulb, MessageCircleHeart, Plus } from "lucide-react";
 import Card, { CardHeader } from "../components/ui/Card.jsx";
 import Button from "../components/ui/Button.jsx";
 import Skeleton from "../components/ui/Skeleton.jsx";
@@ -41,6 +41,7 @@ function PhaseTips({ tips, loading }) {
 
 export default function Health() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(Boolean(location.state?.logPeriod));
   const [editing, setEditing] = useState(null);
 
@@ -99,7 +100,24 @@ export default function Health() {
       )}
 
       {hasData ? (
-        <div className="flex justify-end">
+        <div className="flex flex-wrap justify-end gap-2.5">
+          <Button
+            variant="secondary"
+            size="lg"
+            onClick={() =>
+              navigate("/chat", {
+                state: {
+                  bot: "medical",
+                  prompt: summary?.phase
+                    ? `I am on day ${summary.currentCycleDay} of my cycle, in the ${summary.phase} phase. `
+                    : "",
+                },
+              })
+            }
+          >
+            <MessageCircleHeart className="size-4" aria-hidden="true" />
+            Ask the health assistant
+          </Button>
           <Button size="lg" onClick={openNew}>
             <Plus className="size-4" aria-hidden="true" />
             Log a period

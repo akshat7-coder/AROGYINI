@@ -17,6 +17,24 @@ export class ApiError extends Error {
   }
 }
 
+// The server's wording is aimed at developers for a few codes. These are what the
+// user should actually read.
+const FRIENDLY = {
+  UNAUTHENTICATED: "Your session has ended. Please sign in again.",
+  TOKEN_EXPIRED: "Your session has expired. Please sign in again.",
+  INVALID_TOKEN: "Your session is no longer valid. Please sign in again.",
+  INTERNAL_ERROR: "Something went wrong at our end. Please try again in a moment.",
+  INVALID_JSON: "That request could not be read. Please try again.",
+  PAYLOAD_TOO_LARGE: "That is too large to send. Try shortening it.",
+};
+
+const friendlyFor = ({ code, message, status }) => {
+  if (FRIENDLY[code]) return FRIENDLY[code];
+  if (status === 502) return message || "The assistant is unavailable right now. Please try again shortly.";
+  if (status === 503) return "The service is temporarily unavailable. Please try again shortly.";
+  return message;
+};
+
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
 export const setToken = (token) => localStorage.setItem(TOKEN_KEY, token);
 export const clearToken = () => localStorage.removeItem(TOKEN_KEY);
@@ -56,7 +74,9 @@ client.interceptors.response.use(
     }
 
     if (payload) {
-      return Promise.reject(new ApiError({ ...payload, status }));
+      return Promise.reject(
+        new ApiError({ ...payload, status, message: friendlyFor({ ...payload, status }) })
+      );
     }
     return Promise.reject(
       new ApiError({

@@ -724,6 +724,16 @@ Authorization: Bearer {{adminToken}}
 
 # --- Legal content ---
 
+### All legal rights, including unpublished ones
+GET {{host}}/admin/legal?page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+
+### Only the unpublished ones (how to find a right you hid)
+GET {{host}}/admin/legal?isPublished=false
+Authorization: Bearer {{adminToken}}
+
+
 ### Create a legal right
 # @name adminCreateLegal
 POST {{host}}/admin/legal

@@ -118,7 +118,7 @@ network cannot exhaust the limit for everyone else.
 
 ## Endpoints
 
-63 routes. **Auth**: `—` public, `user` any signed-in user, `admin` role `admin`.
+64 routes. **Auth**: `—` public, `user` any signed-in user, `admin` role `admin`.
 
 ### Health
 
@@ -261,6 +261,7 @@ All under `/api/admin/*` and behind `authorize("admin")` — a normal user gets 
 | PATCH | `/api/admin/users/:id/status` | admin |
 | GET | `/api/admin/sos` | admin |
 | PATCH | `/api/admin/sos/:id/resolve` | admin |
+| GET | `/api/admin/legal` | admin |
 | POST | `/api/admin/legal` | admin |
 | PATCH | `/api/admin/legal/:id` | admin |
 | DELETE | `/api/admin/legal/:id` | admin |
@@ -284,7 +285,9 @@ All under `/api/admin/*` and behind `authorize("admin")` — a normal user gets 
 `GET /api/admin/stats` returns `users`, `activeUsers`, `admins`, `activeSos`, `jobs`,
 `activeJobs`, `applications`, `scholarships` and `openIssues`.
 
-Admin listings include inactive and unpublished rows; the public ones never do.
+Admin listings include inactive and unpublished rows; the public ones never do. `GET
+/api/admin/legal` additionally takes `isPublished=true|false`, which is how an unpublished right
+is found again.
 `DELETE /api/admin/jobs/:id` also deletes that job's applications, so no applicant is left with a
 dangling record.
 

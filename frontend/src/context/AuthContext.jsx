@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthContext } from "./authContext.js";
 import * as authApi from "../api/auth.js";
 import { clearToken, getToken, setToken, setUnauthorizedHandler } from "../api/client.js";
+import { useToast } from "./toastContext.js";
 
 export function AuthProvider({ children }) {
+  const toast = useToast();
   const [user, setUser] = useState(null);
   const [token, setTokenState] = useState(() => getToken());
   // `loading` covers the initial /auth/me so ProtectedRoute does not bounce on refresh.
@@ -17,10 +19,14 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     setUnauthorizedHandler(() => {
+      // Only explain the bounce to someone who was actually signed in.
+      setUser((current) => {
+        if (current) toast.info("Your session has ended. Please sign in again.");
+        return null;
+      });
       setTokenState(null);
-      setUser(null);
     });
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     // `loading` already starts false when there is no token, so nothing to do.

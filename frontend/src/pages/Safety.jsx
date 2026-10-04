@@ -19,7 +19,7 @@ export default function Safety() {
               <ShieldAlert className="size-6" aria-hidden="true" />
             </span>
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="text-lg font-semibold text-slate-900" aria-live="polite">
                 {isActive ? "An SOS is active right now" : "In an emergency"}
               </h2>
               <p className="mt-1 max-w-md text-sm text-slate-700">

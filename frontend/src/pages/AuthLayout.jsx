@@ -3,8 +3,10 @@ import { Link } from "react-router";
 export default function AuthLayout({ title, subtitle, children, footer }) {
   return (
     <div className="app-bg grid place-items-center px-4 py-10">
-      <div className="app-blob bg-brand-200/40 -top-24 -left-20 size-80" />
-      <div className="app-blob size-72 bg-teal-200/35 -right-20 bottom-0" />
+      <div className="app-blobs" aria-hidden="true">
+        <div className="app-blob bg-brand-200/40 -top-24 -left-20 size-80" />
+        <div className="app-blob size-72 bg-teal-200/35 -right-20 bottom-0" />
+      </div>
 
       <div className="relative w-full max-w-md">
         <Link

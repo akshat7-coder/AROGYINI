@@ -177,6 +177,81 @@ describe("seed data integrity", () => {
   });
 });
 
+describe("GET /api/admin/legal", () => {
+  it("returns 401 without a token and 403 for a normal user", async () => {
+    const user = await createUser();
+
+    expect((await request(app).get("/api/admin/legal")).status).toBe(401);
+    expect((await request(app).get("/api/admin/legal").set(authHeader(user))).status).toBe(403);
+  });
+
+  it("lists unpublished rights, unlike the public endpoint", async () => {
+    const admin = await createAdmin();
+    await LegalRight.updateOne({ slug: "zero-fir" }, { isPublished: false });
+
+    const adminList = await request(app).get("/api/admin/legal?limit=50").set(authHeader(admin));
+    expect(adminList.status).toBe(200);
+    expect(adminList.body.meta.total).toBe(legalRights.length);
+    expect(adminList.body.data.map((r) => r.slug)).toContain("zero-fir");
+
+    const publicList = await request(app).get("/api/legal/rights?limit=50");
+    expect(publicList.body.meta.total).toBe(legalRights.length - 1);
+  });
+
+  it("filters by isPublished in both directions", async () => {
+    const admin = await createAdmin();
+    await LegalRight.updateOne({ slug: "zero-fir" }, { isPublished: false });
+
+    const hidden = await request(app).get("/api/admin/legal?isPublished=false").set(authHeader(admin));
+    expect(hidden.body.meta.total).toBe(1);
+    expect(hidden.body.data[0].slug).toBe("zero-fir");
+
+    const shown = await request(app).get("/api/admin/legal?isPublished=true&limit=50").set(authHeader(admin));
+    expect(shown.body.meta.total).toBe(legalRights.length - 1);
+  });
+
+  it("filters by category and searches, including unpublished entries", async () => {
+    const admin = await createAdmin();
+    await LegalRight.updateOne({ slug: "posh-act-2013" }, { isPublished: false });
+
+    const byCategory = await request(app).get("/api/admin/legal?category=workplace").set(authHeader(admin));
+    expect(byCategory.body.data.map((r) => r.slug).sort()).toEqual([
+      "maternity-benefit-act",
+      "posh-act-2013",
+    ]);
+
+    const bySearch = await request(app).get("/api/admin/legal?search=POSH").set(authHeader(admin));
+    expect(bySearch.body.data.map((r) => r.slug)).toContain("posh-act-2013");
+  });
+
+  it("paginates and rejects a bad filter value", async () => {
+    const admin = await createAdmin();
+
+    const paged = await request(app).get("/api/admin/legal?page=1&limit=3").set(authHeader(admin));
+    expect(paged.body.data).toHaveLength(3);
+    expect(paged.body.meta).toEqual({ page: 1, limit: 3, total: legalRights.length });
+
+    expect((await request(app).get("/api/admin/legal?isPublished=maybe").set(authHeader(admin))).status).toBe(400);
+    expect((await request(app).get("/api/admin/legal?category=traffic").set(authHeader(admin))).status).toBe(400);
+  });
+
+  it("lets an admin find and re-publish a right it had hidden", async () => {
+    const admin = await createAdmin();
+    await LegalRight.updateOne({ slug: "zero-fir" }, { isPublished: false });
+
+    const hidden = await request(app).get("/api/admin/legal?isPublished=false").set(authHeader(admin));
+    const id = hidden.body.data[0].id;
+
+    const republished = await request(app)
+      .patch(`/api/admin/legal/${id}`)
+      .set(authHeader(admin))
+      .send({ isPublished: true });
+    expect(republished.status).toBe(200);
+
+    expect((await request(app).get("/api/legal/rights/zero-fir")).status).toBe(200);
+  });
+});
+
 describe("admin legal management", () => {
   const newRight = {
     slug: "test-act-2026",
