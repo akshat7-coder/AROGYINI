@@ -1,0 +1,14 @@
+# Minimum versions, resolved and import-verified on Python 3.14.
+# Note: langchain-pinecone is deliberately NOT used - it pins numpy<2, which has no
+# Python 3.14 wheel. The pinecone SDK is called directly instead.
+flask>=3.1
+python-dotenv>=1.2
+groq>=1.7
+pinecone>=10.0
+langchain-community>=0.4
+langchain-core>=1.6
+langchain-huggingface>=1.2
+langchain-text-splitters>=1.1
+sentence-transformers>=6.1
+pypdf>=6.0
+pytest>=9.0
